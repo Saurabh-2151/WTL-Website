@@ -12,7 +12,7 @@ export default function Footer() {
   })
 
   const toggleSection = (section: keyof typeof openSections) => {
-    setOpenSections({
+    setOpenSections({  
       ...openSections,
       [section]: !openSections[section]
     })
@@ -149,8 +149,8 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Corporate Cabs Column */}
-          <div className="text-center">
+         {/* Corporate Cabs Column */}
+         <div className="text-center">
             <h3 
               className="flex items-center justify-center text-lg font-semibold mb-6 cursor-pointer hover:text-blue-400 transition-colors"
               onClick={() => toggleSection('corporateCabs')}
@@ -221,6 +221,45 @@ export default function Footer() {
               <Link href="/corporate/Corporate-Cab-Services-Surat" className="block text-gray-300 hover:text-blue-400 transition-colors">
                 Corporate Cabs in Surat
               </Link>
+              <Link href="/corporate/Corporate-Cab-Services-Kolkata" className="block text-gray-300 hover:text-blue-400 transition-colors">
+                Corporate Cabs in Kolkata
+              </Link>
+              <Link href="/corporate/Corporate-Cab-Services-Hyderabad" className="block text-gray-300 hover:text-blue-400 transition-colors">
+                Corporate Cabs in Hyderabad
+              </Link>
+              <Link href="/corporate/Corporate-Cab-Services-Ahmedabad" className="block text-gray-300 hover:text-blue-400 transition-colors">
+                Corporate Cabs in Ahmedabad
+              </Link>
+              <Link href="/corporate/Corporate-Cab-Services-Jaipur" className="block text-gray-300 hover:text-blue-400 transition-colors">
+                Corporate Cabs in Jaipur
+              </Link>
+              <Link href="/corporate/Corporate-Cab-Services-Lucknow" className="block text-gray-300 hover:text-blue-400 transition-colors">
+                Corporate Cabs in Lucknow
+              </Link>
+              <Link href="/corporate/Corporate-Cab-Services-Nagpur" className="block text-gray-300 hover:text-blue-400 transition-colors">
+                Corporate Cabs in Nagpur
+              </Link>
+              <Link href="/corporate/Corporate-Cab-Services-Bhopal" className="block text-gray-300 hover:text-blue-400 transition-colors">
+                Corporate Cabs in Bhopal
+              </Link>
+              <Link href="/corporate/Corporate-Cab-Services-Chandigarh" className="block text-gray-300 hover:text-blue-400 transition-colors">
+                Corporate Cabs in Chandigarh
+              </Link>
+              <Link href="/corporate/Corporate-Cab-Services-Noida" className="block text-gray-300 hover:text-blue-400 transition-colors">
+                Corporate Cabs in Noida
+              </Link>
+              <Link href="/corporate/Corporate-Cab-Services-Gurgaon" className="block text-gray-300 hover:text-blue-400 transition-colors">
+                Corporate Cabs in Gurgaon
+              </Link>
+              <Link href="/corporate/Corporate-Cab-Services-Kochi" className="block text-gray-300 hover:text-blue-400 transition-colors">
+                Corporate Cabs in Kochi
+              </Link>
+              <Link href="/corporate/Corporate-Cab-Services-Vadodara" className="block text-gray-300 hover:text-blue-400 transition-colors">
+                Corporate Cabs in Vadodara
+              </Link>
+              <Link href="/corporate/Corporate-Cab-Services-Patna" className="block text-gray-300 hover:text-blue-400 transition-colors">
+                Corporate Cabs in Patna
+              </Link>
             </div>
           </div>
 
@@ -248,7 +287,7 @@ export default function Footer() {
                 Airport Cabs
               </div>
               <svg 
-                xmlns="http://www.w3.org/2000/svg" 
+                xmlns="http://www.w3.org/2000/svg"  
                 width="20" 
                 height="20" 
                 viewBox="0 0 24 24" 
@@ -437,19 +476,23 @@ export default function Footer() {
               <span className="sr-only">LinkedIn</span>
             </Link>
           </div>
-          <div className="text-gray-300 text-sm text-center">
+          <div className="text-gray-200 mr-24 text-sm text-center text-">
             © Copyright WTL 2025. Made with <span className="text-red-500">❤</span> by{" "}
-            <Link 
+            <Link     
               href="https://webutsav.com" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 transition-colors font-medium"
+              className="text-blue-400 hover:text-blue-300 transition-colors font-medium mr-4"
             >
               Webutsav
             </Link>
-            .{" "}
-            <Link href="/privacy-policy" className="hover:text-blue-400 transition-colors">
+            {" "}•{" "}
+            <Link href="/privacy-policy" className="hover:text-blue-400 transition-colors mr-4">
               Privacy Policy
+            </Link>
+            {" "}•{" "}
+            <Link href="/career" className="hover:text-blue-400 transition-colors">
+              Careers
             </Link>
           </div>
         </div>
@@ -457,4 +500,3 @@ export default function Footer() {
     </footer>
   )
 }
-

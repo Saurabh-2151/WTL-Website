@@ -21,8 +21,19 @@ const Contact = () => {
   // Enhanced Amazon-style success sound with higher volume
   const playAmazonStyleSuccessSound = () => {
     try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      
+      const AudioContextCtor = (typeof window !== 'undefined'
+        ? (window.AudioContext || (window as any).webkitAudioContext)
+        : null) as typeof AudioContext | null;
+
+      if (!AudioContextCtor) {
+        throw new Error('Web Audio API not supported in this browser');
+      }
+
+      const audioContext = new AudioContextCtor();
+      if (audioContext.state === 'suspended') {
+        audioContext.resume().catch(() => {});
+      }
+
       // Create multiple oscillators for richer sound
       const createTone = (frequency, startTime, duration, volume = 0.4) => {
         const oscillator = audioContext.createOscillator();
@@ -278,7 +289,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-800">Email Address</h3>
-                      <p className="text-gray-600">info@wtltourism.com</p>
+                      <p className="text-gray-600">info@worldtriplink.com</p>
                     </div>
                   </div>
 
