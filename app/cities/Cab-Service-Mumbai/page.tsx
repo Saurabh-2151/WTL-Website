@@ -406,7 +406,7 @@ export default function MumbaiCabServicePage() {
                           +91 91120 85055
                         </a>
                         <a href="tel:9130030054" className="block text-xl font-bold text-white hover:text-blue-200 transition-colors">
-                          +91 91300 30054
+                          +91 9730545491
                         </a>
                       </div>
                     </div>
