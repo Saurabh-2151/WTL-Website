@@ -663,7 +663,7 @@ useEffect(() => {
 
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-6xl mx-auto mt-[-70px] bg-gradient-to-b from-white/60 to-white/40 backdrop-blur-md rounded-2xl shadow-2xl p-6 md:p-8 ring-1 ring-white/40"
+        className="w-full max-w-6xl mx-auto mt-[-16px] sm:mt-[-24px] md:mt-[-48px] lg:mt-[-64px] bg-gradient-to-b from-white/60 to-white/40 backdrop-blur-md rounded-2xl shadow-2xl p-6 md:p-8 ring-1 ring-white/40"
       >
         <div className="space-y-6">
           {/* Trip Type Selection */}

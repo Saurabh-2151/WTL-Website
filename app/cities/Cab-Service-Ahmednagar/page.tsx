@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Footer from "@/components/footer";
-import Navbar from "@/components/Navbar";
 import CabBookingForm from "@/components/CabBookingForm";
 import BusBookingForm from "@/components/BusBookingForm";
 import HotelBookingForm from "@/components/HotelBookingForm";
@@ -162,10 +161,9 @@ export default function AhmednagarCabServicePage() {
           `}
         </Script>
         <div className="min-h-screen bg-gray-50">
-          <Navbar onTabChange={handleTabChange} disableForm={true} />
           
           {/* Hero Section with Background */}
-          <div className="relative h-[550px]">
+          <div className="relative h-[420px] md:h-[520px] lg:h-[550px]">
             <div className="absolute inset-0">
               <Image
                 src="/images/ahmednagar.jpg"
@@ -178,7 +176,7 @@ export default function AhmednagarCabServicePage() {
             </div>
 
             <div className="relative z-10 h-full">
-              <div className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto h-full flex flex-col justify-center">
+              <div className="pt-4 md:pt-8 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto h-full flex flex-col justify-center">
                 <div className="text-center mb-8">
                   <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
                     Ahmednagar Cab Booking

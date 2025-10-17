@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Footer from "@/components/footer";
-import Navbar from "@/components/Navbar";
 import CabBookingForm from "@/components/CabBookingForm";
 import BusBookingForm from "@/components/BusBookingForm";
 import HotelBookingForm from "@/components/HotelBookingForm";
@@ -172,10 +171,9 @@ export default function MumbaiCorporateCabServicePage() {
   try {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar onTabChange={handleTabChange} disableForm={true} />
         
         {/* Hero Section with Background */}
-        <div className="relative h-[550px] w-full">
+        <div className="relative h-[420px] md:h-[520px] lg:h-[550px] w-full">
           <div className="absolute inset-0">
             <Image
               src="/images/mumbai.jpg"
@@ -188,7 +186,7 @@ export default function MumbaiCorporateCabServicePage() {
           </div>
 
           <div className="relative z-10 h-full">
-            <div className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 w-full mx-auto h-full flex flex-col justify-center">
+            <div className="pt-4 md:pt-8 pb-8 px-4 sm:px-6 lg:px-8 w-full mx-auto h-full flex flex-col justify-center">
               <div className="text-center mb-8">
                 <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
                   Corporate Cab Services in Mumbai
