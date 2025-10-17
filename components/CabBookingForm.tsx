@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import Script from "next/script"
-import Cookies from "js-cookie" // Use cookies for login state, matching Navbar2
 
 interface TimeSlot {
   id: string
@@ -51,10 +50,10 @@ export default function CabBookingForm() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showPopup, setShowPopup] = useState(false); // <-- single source of truth
-  // Helper to check login state from cookie (matching Navbar2)
+  // Helper to check login state from localStorage only
 const checkLoginState = () => {
   let loggedIn = false;
-  const userStr = Cookies.get('user');
+  const userStr = localStorage.getItem('user');
   if (userStr) {
     try {
       const user = JSON.parse(userStr);
@@ -125,10 +124,9 @@ useEffect(() => {
   const dropAutocompleteRef = useRef<any>(null)
   const isInitializedRef = useRef(false)
 
-  // Prefer env var, but also allow runtime overrides via cookie/localStorage for quick testing
-  const cookieKey = Cookies.get('GMAPS_KEY') || ""
+  // Prefer env var, but also allow runtime overrides via localStorage for quick testing
   const runtimeKey = typeof window !== 'undefined' ? (localStorage.getItem('GMAPS_KEY') || "") : ""
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || cookieKey || runtimeKey || "AIzaSyAKjmBSUJ3XR8uD10vG2ptzqLJAZnOlzqI"
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || runtimeKey || "AIzaSyAKjmBSUJ3XR8uD10vG2ptzqLJAZnOlzqI"
   const today = new Date().toISOString().split("T")[0]
 
   // Reset form to initial state
@@ -519,7 +517,7 @@ useEffect(() => {
     try {
       console.log("Calculating distance between:", origin, "and", destination)
 
-      const response = await fetch("https://api.worldtriplink.com/api/cab1", {
+      const response = await fetch("http://localhost:8085/api/cab1", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",

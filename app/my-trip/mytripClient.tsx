@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar2 from '@/components/Navbar2';
 import Footer from '@/components/footer';
 import { motion, AnimatePresence } from 'framer-motion';
-import Cookies from 'js-cookie';
+import Link from 'next/link';
 
 import { FaCar, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUser, FaRupeeSign } from 'react-icons/fa';
 
@@ -64,36 +64,33 @@ export default function MyTripPage() {
   const [trips, setTrips] = useState<TripData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        // Resolve userId from multiple sources so we don't depend on a single cookie
-        const cookieUserId = Cookies.get('userId') || Cookies.get('userid') || Cookies.get('userID') || null;
+        // Check if user is logged in using localStorage only
         const lsUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
         let blobUserId: string | null = null;
         try {
-          const cookieUser = Cookies.get('user');
           const lsUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-          const parsed = cookieUser ? JSON.parse(cookieUser) : (lsUser ? JSON.parse(lsUser) : null);
-          // Try common shapes: userId, id, user.id
+          const parsed = lsUser ? JSON.parse(lsUser) : null;
           blobUserId = parsed?.userId
             ? String(parsed.userId)
             : (parsed?.id
               ? String(parsed.id)
               : (parsed?.user?.id ? String(parsed.user.id) : null));
-
-          // Debug: surface where the ID is coming from
-          console.debug('[MyTrip] cookieUserId:', cookieUserId);
-          console.debug('[MyTrip] lsUserId:', lsUserId);
-          console.debug('[MyTrip] blobUserId:', blobUserId);
         } catch (_) {
           blobUserId = null;
         }
 
-        const id = cookieUserId || lsUserId || blobUserId;
+        const id = lsUserId || blobUserId;
+        
+        // Set login status
+        setIsLoggedIn(!!id);
+        
         if (!id) {
-          setError('You must be logged in to view your trips. (No userId found in cookies/localStorage)');
+          setError(null);
           setLoading(false);
           return;
         }
@@ -101,14 +98,30 @@ export default function MyTripPage() {
         const response = await fetch(`https://api.worldtriplink.com/api/bookings/by-user/${id}`);
         
         if (!response.ok) {
-          throw new Error('Failed to fetch trips');
+          throw new Error(`Failed to fetch trips: ${response.status} ${response.statusText}`);
         }
 
-        const data = await response.json();
-        setTrips(data);
+        // Check if response has content before parsing
+        const text = await response.text();
+        if (!text) {
+          setTrips([]);
+          setLoading(false);
+          return;
+        }
+
+        // Try to parse JSON
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          throw new Error('Invalid response format from server. Please try again later.');
+        }
+
+        setTrips(Array.isArray(data) ? data : []);
         setLoading(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred while fetching trips');
+        console.error('Error fetching trips:', err);
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred while fetching trips. Please try again later.');
         setLoading(false);
       }
     };
@@ -182,6 +195,48 @@ export default function MyTripPage() {
     );
   }
 
+  // Show login/signup buttons if user is not logged in
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar2 />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center max-w-md"
+          >
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Please Log In to View Your Trips</h2>
+            <p className="text-gray-600 mb-8">You need to be logged in to access your booking history.</p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/login" passHref>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 transition-colors"
+                >
+                  Login
+                </motion.button>
+              </Link>
+              
+              <Link href="/Register" passHref>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg shadow-md hover:bg-green-700 transition-colors"
+                >
+                  Sign Up
+                </motion.button>
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -204,13 +259,25 @@ export default function MyTripPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar2 />
-        <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-gray-500 text-xl"
+            className="text-center max-w-md"
           >
-            No trips found
+            <div className="text-5xl mb-4">🚗</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">No Bookings Found</h2>
+            <p className="text-gray-600 mb-8">You haven't made any bookings yet. Start your journey by booking a cab!</p>
+            
+            <Link href="/" passHref>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 transition-colors"
+              >
+                Book a Cab Now
+              </motion.button>
+            </Link>
           </motion.div>
         </div>
         <Footer />

@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import Cookies from "js-cookie";
 import axios from "axios";
 
 // Define interfaces for TypeScript type safety
@@ -197,9 +196,9 @@ function InvoiceContent() {
     
     setPartialAmount(Math.round(calculatedTotal * 0.2));
 
-    // Prefill form fields if user is logged in
+    // Prefill form fields if user is logged in - using localStorage instead of cookies
     if (typeof window !== "undefined") {
-      const userStr = Cookies.get("user");
+      const userStr = localStorage.getItem("user");
       if (userStr) {
         try {
           const userObj = JSON.parse(userStr);
@@ -209,14 +208,14 @@ function InvoiceContent() {
             phone: userObj.phone || userObj.mobileNo || prev.phone || "",
           }));
         } catch (err) {
-          console.log("Failed to parse user from cookie", err);
+          console.log("Failed to parse user from localStorage", err);
         }
       }
     }
     // Prefetch available coupons (enabled only)
     (async () => {
       try {
-        const res = await fetch("https://api.worldtriplink.com/discount/getAll");
+        const res = await fetch("http://localhost:8085/discount/getAll");
         if (res.ok) {
           const all = await res.json();
           const today = new Date(); today.setHours(0,0,0,0);
@@ -245,7 +244,7 @@ function InvoiceContent() {
       return;
     }
     try {
-      const res = await fetch(`https://api.worldtriplink.com/discount/validate?code=${encodeURIComponent(couponCode.trim())}`);
+      const res = await fetch(`http://localhost:8085/discount/validate?code=${encodeURIComponent(couponCode.trim())}`);
       let data: any | null = null;
       if (!res.ok) {
         if (res.status === 410) {
@@ -254,7 +253,7 @@ function InvoiceContent() {
         }
         // Fallback: fetch all coupons and match locally (handles case/whitespace mismatches)
         try {
-          const la = await fetch("https://api.worldtriplink.com/discount/getAll");
+          const la = await fetch("http://localhost:8085/discount/getAll");
           if (la.ok) {
             const all = await la.json();
             const input = couponCode.trim().toUpperCase();
@@ -331,7 +330,7 @@ function InvoiceContent() {
     }
   };
 
-  const userId = Cookies.get("userId");
+  const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
 
   // Phone number validation: exactly 10 digits required
   const validatePhone = (value: string) => {
@@ -357,7 +356,7 @@ function InvoiceContent() {
     setIsSubmitting(true);
     try {
       const response = await fetch(
-        "https://api.worldtriplink.com/api/bookingConfirm",
+        "http://localhost:8085/api/bookingConfirm",
         {
           method: "POST",
           headers: {
@@ -541,7 +540,7 @@ function InvoiceContent() {
     setIsSubmitting(true);
 
     try {
-      const orderResponse = await axios.post("https://api.worldtriplink.com/api/payments/create-razorpay-order", {
+      const orderResponse = await axios.post("http://localhost:8085/api/payments/create-razorpay-order", {
         amount: amountToPay,
       });
       
@@ -1106,7 +1105,7 @@ function InvoiceContent() {
                 </div>
               </div>
 
-              {/* Coupon Section */}
+              {/* Coupon Section - Moved to top of right column */}
               <div className="bg-blue-50 rounded-lg p-4 mb-6">
                 <label className="block text-sm font-medium text-blue-900 mb-2">Coupon Code</label>
                 <div className="flex gap-2">

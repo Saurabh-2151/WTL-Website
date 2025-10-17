@@ -2,7 +2,7 @@ import Cookies from 'js-cookie';
 
 /**
  * Centralized logout utility function
- * Ensures all user data is properly cleared from both localStorage and cookies
+ * Ensures all user data is properly cleared from localStorage
  */
 export const performLogout = () => {
   try {
@@ -25,43 +25,6 @@ export const performLogout = () => {
 
     localStorageKeys.forEach(key => {
       localStorage.removeItem(key);
-    });
-
-    // Cookie removal options - must match the options used when setting cookies
-    const cookieOptions = {
-      path: '/',
-      domain: typeof window !== 'undefined' && window.location.hostname.includes('localhost') 
-        ? undefined 
-        : '.worldtriplink.com',
-      sameSite: 'strict' as const,
-      secure: typeof window !== 'undefined' && window.location.protocol === 'https:'
-    };
-
-    // List of all possible cookies to remove
-    const cookieKeys = [
-      'user',
-      'userId', 
-      'mobileNo',
-      'userRole',
-      'username',
-      'email',
-      'address',
-      'token',
-      'phone',
-      'role',
-      'loginTime',
-      'registrationSuccess',
-      'registrationMessage'
-    ];
-
-    // Remove all cookies with proper options
-    cookieKeys.forEach(key => {
-      Cookies.remove(key, cookieOptions);
-    });
-    
-    // Also try removing without options (fallback for cookies set without specific options)
-    cookieKeys.forEach(key => {
-      Cookies.remove(key);
     });
 
     // Clear session storage as well
@@ -90,18 +53,11 @@ export const performLogout = () => {
 };
 
 /**
- * Check if user is logged in by verifying cookies and localStorage
+ * Check if user is logged in by verifying localStorage only
  */
 export const isUserLoggedIn = (): boolean => {
   try {
-    // Check cookies first (primary source)
-    const userCookie = Cookies.get('user');
-    if (userCookie) {
-      const user = JSON.parse(userCookie);
-      return user.isLoggedIn === true;
-    }
-
-    // Fallback to localStorage
+    // Check localStorage only
     const userLocal = localStorage.getItem('user');
     if (userLocal) {
       const user = JSON.parse(userLocal);
@@ -116,17 +72,11 @@ export const isUserLoggedIn = (): boolean => {
 };
 
 /**
- * Get current user data from cookies or localStorage
+ * Get current user data from localStorage only
  */
 export const getCurrentUser = () => {
   try {
-    // Check cookies first (primary source)
-    const userCookie = Cookies.get('user');
-    if (userCookie) {
-      return JSON.parse(userCookie);
-    }
-
-    // Fallback to localStorage
+    // Check localStorage only
     const userLocal = localStorage.getItem('user');
     if (userLocal) {
       return JSON.parse(userLocal);

@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import InquiryPopup from "./InquiryPopup";
 import Link from 'next/link';
-import Cookies from 'js-cookie';
 import { usePathname } from 'next/navigation';
 
 // Define a more comprehensive user interface
@@ -29,13 +28,6 @@ const Navbar2 = () => {
   const [showInquiry, setShowInquiry] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-// useEffect(()=>{
-//   const pathname = usePathname(); // Gets the path part of URL
-//     const serviceType = pathname.split('/corporate/')[1];
-//     console.log('Service Type:', serviceType);
-
-// })
-
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -54,8 +46,7 @@ const Navbar2 = () => {
   // Function to load all user data
   const loadUserData = () => {
     // Try to load user data from 'user' item first (most complete)
-    // const userData = localStorage.getItem('user');
-    const userData=Cookies.get('user')
+    const userData = localStorage.getItem('user');
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData);
@@ -92,16 +83,8 @@ const Navbar2 = () => {
     }
   };
 
-
   const pathname = usePathname();
     
-    // useEffect(() => {
-    //     if (pathname.includes('/corporate/')) {
-    //         const serviceType = pathname.split('/corporate/')[1];
-    //         console.log('Service Type:', serviceType);
-    //     }
-    // }, [pathname]);
-  
   // Function to handle logout
   
   const handleLogout = () => {
@@ -112,8 +95,7 @@ const Navbar2 = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('email');
     localStorage.removeItem('address');
-
-    Cookies.remove('user')
+    localStorage.removeItem('userId');
     
     // Update state
     setUser(null);
@@ -174,12 +156,6 @@ const Navbar2 = () => {
     });
   };
 
-  //  useEffect(() => {
-  //       const pathname = usePathname(); // This won't work - hooks can't be called inside useEffect
-  //       const serviceType = pathname.split('/corporate/')[1];
-  //       console.log('Service Type:', serviceType);
-  //   }, []); 
-  
   // Refresh user data when profile modal is opened
   useEffect(() => {
     if (showProfileModal) {

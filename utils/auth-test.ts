@@ -17,18 +17,11 @@ export const testLogoutFunctionality = () => {
   console.log('\n3. Setting test data...');
   localStorage.setItem('user', JSON.stringify({ username: 'test', isLoggedIn: true }));
   localStorage.setItem('token', 'test-token');
-  
-  // Set test cookies (if in browser environment)
-  if (typeof document !== 'undefined') {
-    document.cookie = 'userId=123; path=/';
-    document.cookie = 'userRole=USER; path=/';
-  }
 
   console.log('4. After setting test data:');
   console.log('   - Login state:', isUserLoggedIn());
   console.log('   - User data:', getCurrentUser());
   console.log('   - LocalStorage keys:', Object.keys(localStorage));
-  console.log('   - Cookies:', typeof document !== 'undefined' ? document.cookie : 'N/A');
 
   // Test 3: Perform logout
   console.log('\n5. Performing logout...');
@@ -40,7 +33,6 @@ export const testLogoutFunctionality = () => {
   console.log('   - Login state:', isUserLoggedIn());
   console.log('   - User data:', getCurrentUser());
   console.log('   - LocalStorage keys:', Object.keys(localStorage));
-  console.log('   - Cookies:', typeof document !== 'undefined' ? document.cookie : 'N/A');
 
   // Test 5: Check specific items
   const itemsToCheck = ['user', 'token', 'userId', 'userRole', 'username'];
