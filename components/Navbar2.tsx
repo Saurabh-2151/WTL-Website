@@ -510,9 +510,7 @@ const Navbar2 = () => {
   };
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 w-full z-[9999] transition-all duration-300 ${
-      isScrolled ? 'bg-white' : 'bg-transparent'
-    }`}>
+    <nav className={`fixed top-0 left-0 right-0 w-full z-[9999] bg-white transition-all duration-300`}>
       <div className="w-full px-2 sm:px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -538,18 +536,14 @@ const Navbar2 = () => {
                 {item.href ? (
                   <Link
                     href={item.href}
-                    className={`text-sm font-medium transition-colors duration-200 ${
-                      isScrolled ? 'text-gray-700 hover:text-blue-600' : 'text-white hover:text-blue-200'
-                    }`}
+                    className={`text-sm font-medium transition-colors duration-200 text-gray-700 hover:text-blue-600`}
                   >
                     {item.name}
                   </Link>
                 ) : (
                   <button
                     onClick={item.action}
-                    className={`text-sm font-medium transition-colors duration-200 ${
-                      isScrolled ? 'text-gray-700 hover:text-blue-600' : 'text-white hover:text-blue-200'
-                    }`}
+                    className={`text-sm font-medium transition-colors duration-200 text-gray-700 hover:text-blue-600`}
                   >
                     {item.name}
                   </button>
@@ -612,9 +606,7 @@ const Navbar2 = () => {
           <div className="md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className={`p-2 rounded-md transition-colors duration-200 ${
-                isScrolled ? 'text-gray-700' : 'text-white'
-              }`}
+              className={`p-2 rounded-md transition-colors duration-200 text-gray-700`}
             >
               <svg
                 className="h-6 w-6"

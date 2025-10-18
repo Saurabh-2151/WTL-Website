@@ -53,7 +53,7 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
           <div className="flex items-center">
             <img 
-              src="/wtl-logo.png" 
+              src="/wtl-.png" 
               alt="WTL Tourism" 
               className="h-12 mr-3" 
             />
