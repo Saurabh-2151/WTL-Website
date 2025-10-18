@@ -30,6 +30,10 @@ interface FormData {
   name: string;
   email: string;
   phone: string;
+  gender: string;
+  remarks: string;
+  hasGST: boolean;
+  agreeToTerms: boolean;
 }
 
 interface FormErrors {
@@ -44,6 +48,14 @@ interface PricingData {
   isCalculated: boolean;
 }
 
+interface DiscountDTO {
+  id: number;
+  couponCode: string;
+  priceDiscount: number;
+  isEnabled: string;
+  expiryDate: string; // yyyy-MM-dd
+}
+
 // Ensure the Razorpay script is loaded in your root layout or document file.
 declare global {
   interface Window {
@@ -54,6 +66,9 @@ declare global {
 function InvoiceContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Timer state
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 59, seconds: 59 });
 
   // Car data loaded via URL parameters
   const [carData, setCarData] = useState<CarData>({
@@ -80,6 +95,10 @@ function InvoiceContent() {
     name: "",
     email: "",
     phone: "",
+    gender: "",
+    remarks: "",
+    hasGST: false,
+    agreeToTerms: false,
   });
 
   // Field error state for form validations (phone field)
@@ -122,7 +141,114 @@ function InvoiceContent() {
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [couponMaxDiscount, setCouponMaxDiscount] = useState<number>(Number.POSITIVE_INFINITY);
   const [couponMinOrder, setCouponMinOrder] = useState<number>(0);
-  const [availableCoupons, setAvailableCoupons] = useState<Array<{ couponCode: string; isEnabled?: boolean }>>([]);
+  const [availableCoupons, setAvailableCoupons] = useState<DiscountDTO[]>([]);
+
+  // Extra options state
+  const [extras, setExtras] = useState({
+    pet: false,
+    carrier: false,
+  });
+
+  // Fetch available coupons from backend
+  useEffect(() => {
+    const fetchCoupons = async () => {
+      try {
+        const base = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.worldtriplink.com";
+        const res = await axios.get(`${base}/discount/getAll`);
+        const items: DiscountDTO[] = res.data || [];
+        const today = new Date();
+        const enabled = items
+          .filter((c) => String(c.isEnabled).toLowerCase() === "true")
+          .filter((c) => {
+            if (!c.expiryDate) return true; // treat null/empty as no expiry
+            const d = new Date(c.expiryDate);
+            if (isNaN(d.getTime())) return true; // malformed date -> allow
+            d.setHours(23, 59, 59, 999); // inclusive expiry
+            return d >= today;
+          });
+        setAvailableCoupons(enabled);
+      } catch (e) {
+        // ignore silently; UI will allow manual code entry
+      }
+    };
+    fetchCoupons();
+  }, []);
+
+  // Apply a coupon: set discount and recompute pricing totals for display cards
+  const applyCoupon = (coupon: DiscountDTO) => {
+    const discountValue = Math.max(0, Number(coupon.priceDiscount) || 0);
+    setCouponCode(coupon.couponCode);
+    setDiscountAmount(discountValue);
+    setDiscountApplied(true);
+
+    try {
+      const baseFare = Math.max(0, Number(carData.price) - discountValue);
+      if (carData.tripType === "roundTrip") {
+        const days = Math.max(0, Number(carData.days) || 0);
+        const driverCost = driverrate * days;
+        const subTotal = driverCost + baseFare;
+        const gst = Math.round(subTotal * 0.05);
+        const service = Math.round(subTotal * 0.1);
+        const total = subTotal + gst + service;
+        setPricing(prev => ({ ...prev, gst, service, total, isCalculated: true }));
+        setPartialAmount(Math.round(total * 0.2));
+      } else {
+        const gst = Math.round(baseFare * 0.05);
+        const service = Math.round(baseFare * 0.1);
+        const total = baseFare + gst + service;
+        setPricing(prev => ({ ...prev, gst, service, total, isCalculated: true }));
+        setPartialAmount(Math.round(total * 0.2));
+      }
+      clearPaymentError();
+    } catch (err) {
+      // fallback: do nothing
+    }
+  };
+
+  const clearCoupon = () => {
+    setCouponCode("");
+    setDiscountAmount(0);
+    setDiscountApplied(false);
+    // Recompute based on original price
+    try {
+      const price = Math.max(0, Number(carData.price) || 0);
+      const gst = Math.round(price * 0.05);
+      const service = Math.round(price * 0.1);
+      const total = price + gst + service;
+      setPricing(prev => ({ ...prev, gst, service, total, isCalculated: true }));
+      setPartialAmount(Math.round(total * 0.2));
+    } catch {}
+  };
+
+  // Manual apply using fetched list (no roundtrip unless needed)
+  const handleManualApply = () => {
+    setCouponError("");
+    const code = couponCode.trim().toUpperCase();
+    if (!code) { setCouponError("Enter a coupon code"); return; }
+    const match = availableCoupons.find(c => String(c.couponCode || "").trim().toUpperCase() === code);
+    if (!match) { setCouponError("Invalid or disabled coupon"); return; }
+    applyCoupon(match);
+  };
+
+  // Timer effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev.seconds > 0) {
+          return { ...prev, seconds: prev.seconds - 1 };
+        } else if (prev.minutes > 0) {
+          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+        } else if (prev.hours > 0) {
+          return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        } else {
+          clearInterval(timer);
+          return prev;
+        }
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Helper function to show payment error
   const showPaymentErrorMessage = (message: string) => {
@@ -203,6 +329,7 @@ function InvoiceContent() {
         try {
           const userObj = JSON.parse(userStr);
           setFormData((prev) => ({
+            ...prev,
             name: userObj.username || userObj.name || prev.name || "",
             email: userObj.email || prev.email || "",
             phone: userObj.phone || userObj.mobileNo || prev.phone || "",
@@ -212,27 +339,6 @@ function InvoiceContent() {
         }
       }
     }
-    // Prefetch available coupons (enabled only)
-    (async () => {
-      try {
-        const res = await fetch("http://localhost:8085/discount/getAll");
-        if (res.ok) {
-          const all = await res.json();
-          const today = new Date(); today.setHours(0,0,0,0);
-          const enabled = Array.isArray(all) ? all.filter((c: any) => {
-            const isEnabled = c?.isEnabled === true || c?.isEnabled === "true";
-            if (!isEnabled) return false;
-            if (!c?.expiryDate) return true;
-            // expiryDate is inclusive; treat expired if expiryDate < today
-            const d = new Date(String(c.expiryDate)); d.setHours(0,0,0,0);
-            return d.getTime() >= today.getTime();
-          }) : [];
-          setAvailableCoupons(enabled.map((c: any) => ({ couponCode: String(c.couponCode || "") || "" })));
-        }
-      } catch (e) {
-        // ignore listing errors; coupon apply will still work
-      }
-    })();
   }, [searchParams]);
 
   // Apply coupon handler
@@ -244,7 +350,7 @@ function InvoiceContent() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:8085/discount/validate?code=${encodeURIComponent(couponCode.trim())}`);
+      const res = await fetch(`https://api.worldtriplink.com/discount/validate?code=${encodeURIComponent(couponCode.trim())}`);
       let data: any | null = null;
       if (!res.ok) {
         if (res.status === 410) {
@@ -253,7 +359,7 @@ function InvoiceContent() {
         }
         // Fallback: fetch all coupons and match locally (handles case/whitespace mismatches)
         try {
-          const la = await fetch("http://localhost:8085/discount/getAll");
+          const la = await fetch("https://api.worldtriplink.com/discount/getAll");
           if (la.ok) {
             const all = await la.json();
             const input = couponCode.trim().toUpperCase();
@@ -350,13 +456,32 @@ function InvoiceContent() {
     setFormData({ ...formData, phone: digitsOnly });
     setFormErrors({ ...formErrors, phone: validatePhone(digitsOnly) });
   };
+
+  // Handle form input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
+    
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
+  // Handle extra options changes
+  const handleExtraChange = (name: string) => {
+    setExtras({
+      ...extras,
+      [name]: !extras[name as keyof typeof extras]
+    });
+  };
   
   // Centralized function to submit booking data
   const submitBooking = async (bookingData: URLSearchParams) => {
     setIsSubmitting(true);
     try {
       const response = await fetch(
-        "http://localhost:8085/api/bookingConfirm",
+        "https://api.worldtriplink.com/api/bookingConfirm",
         {
           method: "POST",
           headers: {
@@ -540,7 +665,7 @@ function InvoiceContent() {
     setIsSubmitting(true);
 
     try {
-      const orderResponse = await axios.post("http://localhost:8085/api/payments/create-razorpay-order", {
+      const orderResponse = await axios.post("https://api.worldtriplink.com/api/payments/create-razorpay-order", {
         amount: amountToPay,
       });
       
@@ -688,30 +813,87 @@ function InvoiceContent() {
     }
   };
 
+  // Calculate total with extras
+  const calculateTotalWithExtras = () => {
+    let total = pricing.total;
+    if (extras.pet) total += 500;
+    if (extras.carrier) total += 100;
+    return total;
+  };
+
+  // Calculate fare breakup details
+  const calculateFareBreakup = () => {
+    const baseFare = Number(carData.price);
+    const serviceCharge = Math.round(baseFare * 0.1);
+    const gst = Math.round(baseFare * 0.05);
+    const totalBeforeExtras = baseFare + serviceCharge + gst;
+    const totalWithExtras = calculateTotalWithExtras();
+    
+    return {
+      baseFare,
+      serviceCharge,
+      gst,
+      totalBeforeExtras,
+      totalWithExtras,
+      extrasCost: totalWithExtras - totalBeforeExtras
+    };
+  };
+
+  const fareBreakup = calculateFareBreakup();
+
   return (
     
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-4 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Top Banner */}
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-700 text-white rounded-xl p-5 mb-8 text-center shadow-lg">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center justify-center mb-3 md:mb-0">
+              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="font-bold text-lg">Hurray! 20% off on all rides</p>
+            </div>
+            <div className="flex items-center justify-center space-x-3">
+              <span className="text-sm font-medium">Offer ends in:</span>
+              <div className="flex space-x-2">
+                <div className="bg-white bg-opacity-20 rounded-lg py-2 px-3">
+                  <span className="text-xl font-bold">{timeLeft.hours.toString().padStart(2, '0')}</span>
+                  <p className="text-xs">HRS</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-lg py-2 px-3">
+                  <span className="text-xl font-bold">{timeLeft.minutes.toString().padStart(2, '0')}</span>
+                  <p className="text-xs">MINS</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-lg py-2 px-3">
+                  <span className="text-xl font-bold">{timeLeft.seconds.toString().padStart(2, '0')}</span>
+                  <p className="text-xs">SECS</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Success Message */}
         {bookingSuccess && (
           <div
-            className="bg-gradient-to-r from-green-100 to-emerald-100 border-2 border-green-400 text-green-800 px-6 py-4 rounded-lg relative mb-6 shadow-lg"
+            className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800 px-6 py-4 rounded-xl relative mb-8 shadow-lg"
             role="alert"
           >
-            <div className="flex items-center">
+            <div className="flex">
               <div className="flex-shrink-0">
-                <svg className="w-8 h-8 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <div>
-                <div className="flex items-center mb-2">
-                  <strong className="font-bold text-xl text-green-700">🎉 Congratulations!</strong>
+              <div className="ml-4">
+                <div className="flex items-center">
+                  <strong className="font-bold text-xl">🎉 Congratulations!</strong>
                 </div>
-                <div className="text-green-700">
-                  <p className="font-semibold mb-1">Your cab booking has been confirmed successfully!</p>
+                <div className="text-green-700 mt-1">
+                  <p className="font-semibold text-base mb-2">Your cab booking has been confirmed successfully!</p>
                   <p className="text-sm">
-                    <span className="font-medium">Booking ID:</span> <strong className="bg-green-200 px-2 py-1 rounded font-mono">{bookingId}</strong>
+                    <span className="font-medium">Booking ID:</span> <span className="bg-green-100 px-2 py-1 rounded font-mono font-bold">{bookingId}</span>
                   </p>
                   <p className="text-sm mt-2">
                     📧 A confirmation email has been sent with your booking details.<br/>
@@ -727,53 +909,38 @@ function InvoiceContent() {
         {/* Payment Error Message */}
         {showPaymentError && (
           <div
-            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 flex items-center"
+            className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl relative mb-6 flex items-center shadow-lg"
             role="alert"
           >
             <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-6 h-6 mr-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
               <div>
-                <strong className="font-bold">Payment Error!</strong>
-                <span className="block sm:inline ml-1">{paymentError}</span>
+                <strong className="font-bold text-lg">Payment Error!</strong>
+                <span className="block sm:inline ml-2 text-base">{paymentError}</span>
               </div>
             </div>
             <button
               onClick={() => setShowPaymentError(false)}
-              className="absolute top-0 bottom-0 right-0 px-4 py-3"
+              className="absolute top-0 bottom-0 right-0 px-5 py-4"
             >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
           </div>
         )}
 
-
-        {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Booking Invoice
-          </h1>
-          <p className="mt-2 text-gray-600">
-            Complete your booking details below
-          </p>
-        </div>
-
-        {/* Main Content */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* Left Column – Car Details */}
-            <div className="p-6 bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 text-white relative overflow-hidden">
-              <div className="absolute inset-0 bg-[url('/images/pattern.png')] opacity-10"></div>
-              <div className="relative z-10">
-                <h2 className="text-2xl font-bold mb-4 text-white">
-                  Cab Information
-                </h2>
-                <div className="space-y-4">
-                  <div className="flex justify-center mb-4">
-                    <div className="w-56 h-40 relative rounded-xl overflow-hidden shadow-2xl">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Car Details and Trip Information */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Car Details Section */}
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+              <div className="p-7">
+                <div className="flex flex-col md:flex-row gap-8">
+                  <div className="flex-shrink-0">
+                    <div className="w-52 h-36 relative rounded-xl overflow-hidden border-2 border-gray-200 shadow-lg">
                       {carData.image ? (
                         <Image
                           src={carData.image}
@@ -783,438 +950,640 @@ function InvoiceContent() {
                           priority
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                          <span className="text-gray-400">
-                            No image available
+                        <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                          <span className="text-gray-400 text-lg">
+                            No image
                           </span>
                         </div>
                       )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white/10 p-3 rounded-lg backdrop-blur-sm">
-                      <p className="text-blue-200 text-xs">Model Type</p>
-                      <p className="font-semibold">{carData.category}</p>
+                  <div className="flex-grow">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Dzire or Similar</h2>
+                    <div className="flex items-center mb-4">
+                      <div className="flex text-yellow-400">
+                        {[...Array(5)].map((_, i) => (
+                          <svg key={i} className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                          </svg>
+                        ))}
+                      </div>
+                      <span className="ml-3 text-gray-600 font-medium">★ 4.6 <span className="text-sm">(548 ratings)</span></span>
                     </div>
-                    <div className="bg-white/10 p-3 rounded-lg backdrop-blur-sm">
-                      <p className="text-blue-200 text-xs">Seats</p>
-                      <p className="font-semibold">
-                        {carData.category === "SUV" ||
-                        carData.category === "muv"
-                          ? "6+1"
-                          : "4+1"}
-                      </p>
-                    </div>
-                    <div className="bg-white/10 p-3 rounded-lg backdrop-blur-sm">
-                      <p className="text-blue-200 text-xs">Fuel Type</p>
-                      <p className="font-semibold">CNG-Diesel</p>
-                    </div>
-                    <div className="bg-white/10 p-3 rounded-lg backdrop-blur-sm">
-                      <p className="text-blue-200 text-xs">Availability</p>
-                      <p className="font-semibold">Available</p>
-                    </div>
-                  </div>
-                  
-                  <div className="border-t border-white/20 pt-4 mt-4">
-                    <div className="space-y-2">
-                      {/* Round Trip Invoice */}
-                      {carData.tripType === "roundTrip" &&
-                        (() => {
-                          const baseFare = Number(carData.price);
-                          const numberOfDays = Number(carData.days);
-                          const driverCost = driverrate * numberOfDays;
-                          const appliedDisc = discountApplied ? Number(discountAmount || 0) : 0;
-                          const discountedBaseFare = Math.max(0, baseFare - appliedDisc);
-                          const subTotal = driverCost + discountedBaseFare;
-                          const gstAmount = subTotal * 0.05;
-                          const serviceCharge = subTotal * 0.1;
-                          const totalAmount = subTotal + gstAmount + serviceCharge;
-
-                          return (
-                            <>
-                              <div className="flex justify-between items-center">
-                                <span className="text-blue-200">
-                                  Distance/Day:
-                                </span>
-                                <span className="font-semibold">300km</span>
-                              </div>
-
-                              <div className="flex justify-between items-center">
-                                <span className="text-blue-200">
-                                  Driver Bhata/Day
-                                  <br />
-                                  <small className="text-xs">
-                                    (Fixed 300km/day in Round Trip)
-                                  </small>
-                                </span>
-                                <span className="font-semibold">
-                                  ₹{driverrate}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center justify-center gap-5 my-6">
-                                <div className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-white to-transparent"></div>
-                                <h1 className="text-2xl font-bold text-white px-4">
-                                  Invoice
-                                </h1>
-                                <div className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-white to-transparent"></div>
-                              </div>
-
-                              <div className="flex justify-between items-center">
-                                <span className="text-blue-200">
-                                  Base Fare
-                                </span>
-                                <span className="font-semibold">₹{baseFare}</span>
-                              </div>
-                              {discountApplied && discountAmount > 0 && (
-                                <div className="flex justify-between items-center">
-                                  <span className="text-blue-200">Discount ({discountPercent}%{Number.isFinite(couponMaxDiscount) ? `, max ₹${couponMaxDiscount}` : ""})</span>
-                                  <span className="font-semibold">-₹{discountAmount}</span>
-                                </div>
-                              )}
-                              <div className="flex justify-between items-center">
-                                <span className="text-blue-200">Amount(DriverRate+BaseFare)</span>
-                                <span className="font-semibold">₹{subTotal}</span>
-                              </div>
-
-                              <div className="flex justify-between items-center">
-                                <span className="text-blue-200">GST(5%)</span>
-                                <span className="font-semibold">
-                                  ₹{gstAmount.toFixed(2)}
-                                </span>
-                              </div>
-
-                              <div className="flex justify-between items-center">
-                                <span className="text-blue-200">
-                                  Service Charge(10%)
-                                </span>
-                                <span className="font-semibold">
-                                  ₹{serviceCharge.toFixed(2)}
-                                </span>
-                              </div>
-
-                              <div className="flex justify-between items-center text-xl mt-3 pt-3 border-t border-white/20">
-                                <span className="font-bold">
-                                  Total Amount:
-                                </span>
-                                <span className="font-bold text-2xl">
-                                  ₹ {totalAmount.toFixed(2)}
-                                </span>
-                              </div>
-                            </>
-                          );
-                        })()}
-
-                      {/* One Way Invoice */}
-                      {carData.tripType === "oneWay" && (
-                        <>
-                          <div className="flex justify-between items-center">
-                            <span className="text-blue-200">Base Fare</span>
-                            <span className="font-semibold">
-                              ₹{carData.price}
-                            </span>
-                          </div>
-                          {discountApplied && discountAmount > 0 && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-blue-200">Discount ({discountPercent}%{Number.isFinite(couponMaxDiscount) ? `, max ₹${couponMaxDiscount}` : ""})</span>
-                              <span className="font-semibold">-₹{discountAmount}</span>
-                            </div>
-                          )}
-                          
-                          <div className="flex justify-between items-center">
-                            <span className="text-blue-200">
-                              Service Charge:
-                            </span>
-                            <span className="font-semibold">
-                              ₹
-                              {pricing.isCalculated
-                                ? pricing.service
-                                : (() => {
-                                    const base = Math.max(0, Number(carData.price) - Number(discountAmount || 0));
-                                    return Math.round(base * 0.1);
-                                  })()}
-                            </span>
-                          </div>
-                          
-                          <div className="flex justify-between items-center">
-                            <span className="text-blue-200">GST:</span>
-                            <span className="font-semibold">
-                              ₹
-                              {pricing.isCalculated
-                                ? pricing.gst
-                                : (() => {
-                                    const base = Math.max(0, Number(carData.price) - Number(discountAmount || 0));
-                                    return Math.round(base * 0.05);
-                                  })()}
-                            </span>
-                          </div>
-                          
-                          <div className="flex justify-between items-center text-xl mt-3 pt-3 border-t border-white/20">
-                            <span className="font-bold">Total Amount:</span>
-                            <span className="font-bold text-2xl">
-                              ₹
-                              {pricing.isCalculated
-                                ? pricing.total
-                                : (() => {
-                                    const base = Math.max(0, Number(carData.price) - Number(discountAmount || 0));
-                                    return base + Math.round(base * 0.1) + Math.round(base * 0.05);
-                                  })()}
-                            </span>
-                          </div>
-                        </>
-                      )}
-
-                      {/* Rental Invoice */}
-                      {carData.tripType === "rental" && (
-                        <>
-                          <div className="flex justify-between items-center">
-                            <span className="text-blue-200">Package:</span>
-                            <span className="font-semibold">
-                              {carData.packageName}
-                            </span>
-                          </div>
-                          
-                          {carData.estimatedTravelTime && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-blue-200">
-                                Estimated Travel Time:
-                              </span>
-                              <span className="font-semibold">
-                                {carData.estimatedTravelTime}
-                              </span>
-                            </div>
-                          )}
-
-                          <div className="flex items-center justify-center gap-5 my-6">
-                            <div className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-white to-transparent"></div>
-                            <h1 className="text-2xl font-bold text-white px-4">
-                              Invoice
-                            </h1>
-                            <div className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-white to-transparent"></div>
-                          </div>
-
-                          <div className="flex justify-between items-center">
-                            <span className="text-blue-200">Base Amount:</span>
-                            <span className="font-semibold">
-                              ₹{carData.price}
-                            </span>
-                          </div>
-                          {discountApplied && discountAmount > 0 && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-blue-200">Discount ({discountPercent}%{Number.isFinite(couponMaxDiscount) ? `, max ₹${couponMaxDiscount}` : ""})</span>
-                              <span className="font-semibold">-₹{discountAmount}</span>
-                            </div>
-                          )}
-                          
-                          <div className="flex justify-between items-center">
-                            <span className="text-blue-200">GST (5%):</span>
-                            <span className="font-semibold">
-                              ₹{(() => { const base = Math.max(0, Number(carData.price) - Number(discountAmount || 0)); return Math.round(base * 0.05); })()}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between items-center">
-                            <span className="text-blue-200">
-                              Service Charge (10%):
-                            </span>
-                            <span className="font-semibold">
-                              ₹{(() => { const base = Math.max(0, Number(carData.price) - Number(discountAmount || 0)); return Math.round(base * 0.1); })()}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between items-center text-xl mt-3 pt-3 border-t border-white/20">
-                            <span className="font-bold">Total Amount:</span>
-                            <span className="font-bold text-2xl">
-                              ₹
-                              {(() => { const base = Math.max(0, Number(carData.price) - Number(discountAmount || 0)); return base + Math.round(base * 0.05) + Math.round(base * 0.1); })()}
-                            </span>
-                          </div>
-                        </>
-                      )}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5">
+                      <div className="flex items-center bg-gray-50 p-3 rounded-lg">
+                        <svg className="w-6 h-6 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span className="text-sm font-medium">4-seater</span>
+                      </div>
+                      <div className="flex items-center bg-gray-50 p-3 rounded-lg">
+                        <svg className="w-6 h-6 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4 4 0 003 15z" />
+                        </svg>
+                        <span className="text-sm font-medium">AC</span>
+                      </div>
+                      <div className="flex items-center bg-gray-50 p-3 rounded-lg">
+                        <svg className="w-6 h-6 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        <span className="text-sm font-medium">Sanitized</span>
+                      </div>
+                      <div className="flex items-center bg-gray-50 p-3 rounded-lg">
+                        <svg className="w-6 h-6 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="text-sm font-medium">GPS</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Column – Trip Information, Coupon & Booking Form */}
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                Trip Information
-              </h2>
-              <div className="mb-6">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500">Pickup Location</p>
-                    <p className="font-medium text-gray-800">
-                      {carData.pickupLocation}
-                    </p>
+            {/* Inclusions & Exclusions Section */}
+            {/* <div className="bg-white rounded-2xl shadow-xl p-7 border border-gray-100">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 pb-2 border-b border-gray-200">Inclusions & Exclusions</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-green-50 rounded-xl p-5 border border-green-100">
+                  <h3 className="font-bold text-green-700 text-lg mb-4 flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Inclusions
+                  </h3>
+                  <ul className="space-y-3">
+                    <li className="flex items-start">
+                      <svg className="w-6 h-6 text-green-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-gray-700">Toll Charges</span>
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="w-6 h-6 text-green-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-gray-700">State Tax</span>
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="w-6 h-6 text-green-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-gray-700">156 Km</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="bg-red-50 rounded-xl p-5 border border-red-100">
+                  <h3 className="font-bold text-red-700 text-lg mb-4 flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Exclusions
+                  </h3>
+                  <ul className="space-y-3">
+                    <li className="flex items-start">
+                      <svg className="w-6 h-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span className="text-gray-700">Night Charges</span>
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="w-6 h-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span className="text-gray-700">Parking Charges</span>
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="w-6 h-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span className="text-gray-700">Waiting Charges (After 45 mins ₹100 per 30 mins)</span>
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="w-6 h-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span className="text-gray-700">Fare Beyond 156 Km ₹13/Km</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div> */}
+
+            {/* Choose Extra Section
+            <div className="bg-white rounded-2xl shadow-xl p-7 border border-gray-100">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 pb-2 border-b border-gray-200">Choose Extra</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div 
+                  className={`border-2 rounded-xl p-5 cursor-pointer transition-all duration-300 ${
+                    extras.pet ? 'border-orange-500 bg-orange-50 shadow-md' : 'border-gray-200 hover:border-orange-300 hover:shadow-md'
+                  }`}
+                  onClick={() => handleExtraChange('pet')}
+                >
+                  <div className="flex items-start">
+                    <input
+                      type="checkbox"
+                      checked={extras.pet}
+                      onChange={() => handleExtraChange('pet')}
+                      className="mt-1 mr-4 h-5 w-5 text-orange-600 rounded focus:ring-orange-500 border-gray-300"
+                    />
+                    <div>
+                      <h3 className="font-bold text-gray-800 text-lg">Pet Option</h3>
+                      <p className="text-gray-600 mt-2">Add a pet-friendly option for a comfortable ride for your furry friend.</p>
+                      <p className="text-orange-600 font-bold text-xl mt-3">₹500</p>
+                    </div>
                   </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500">Drop Location</p>
-                    <p className="font-medium text-gray-800">
-                      {carData.dropLocation}
-                    </p>
+                </div>
+                <div 
+                  className={`border-2 rounded-xl p-5 cursor-pointer transition-all duration-300 ${
+                    extras.carrier ? 'border-orange-500 bg-orange-50 shadow-md' : 'border-gray-200 hover:border-orange-300 hover:shadow-md'
+                  }`}
+                  onClick={() => handleExtraChange('carrier')}
+                >
+                  <div className="flex items-start">
+                    <input
+                      type="checkbox"
+                      checked={extras.carrier}
+                      onChange={() => handleExtraChange('carrier')}
+                      className="mt-1 mr-4 h-5 w-5 text-orange-600 rounded focus:ring-orange-500 border-gray-300"
+                    />
+                    <div>
+                      <h3 className="font-bold text-gray-800 text-lg">Carrier Option</h3>
+                      <p className="text-gray-600 mt-2">Add a carrier roof rack for extra luggage.</p>
+                      <p className="text-orange-600 font-bold text-xl mt-3">₹100</p>
+                    </div>
                   </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500">Date</p>
-                    <p className="font-medium text-gray-800">{carData.date}</p>
+                </div>
+              </div>
+            </div> */}
+
+            {/* Trip Details Section */}
+            <div className="bg-white rounded-2xl shadow-xl p-7 border border-gray-100">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 pb-2 border-b border-gray-200">Trip Details</h2>
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Pickup Address
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                      <input
+                        type="text"
+                        name="pickup"
+                        value={carData.pickupLocation}
+                        readOnly
+                        className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Drop-off Address
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                      <input
+                        type="text"
+                        name="dropoff"
+                        value={carData.dropLocation}
+                        readOnly
+                        className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter your name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Gender
+                    </label>
+                    <div className="flex space-x-4">
+                      {['Male', 'Female', 'Others'].map((gender) => (
+                        <label key={gender} className="inline-flex items-center">
+                          <input
+                            type="radio"
+                            name="gender"
+                            value={gender}
+                            checked={formData.gender === gender}
+                            onChange={handleInputChange}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="ml-2 text-gray-700">{gender}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email ID
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <input
+                        type="email"
+                        name="email"
+                        required
+                        className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Contact Number
+                    </label>
+                    <div className="flex">
+                      <span className="inline-flex items-center px-4 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        name="phone"
+                        required
+                        className={`flex-1 px-4 py-3 border ${
+                          formErrors.phone ? "border-red-500" : "border-gray-300"
+                        } rounded-r-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                        placeholder="Enter 10-digit phone number"
+                        value={formData.phone}
+                        onChange={handlePhoneChange}
+                        pattern="[0-9]{10}"
+                        maxLength={10}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    {formErrors.phone && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {formErrors.phone}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Remarks (Optional)
+                  </label>
+                  <textarea
+                    name="remarks"
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Any special requests or instructions"
+                    value={formData.remarks}
+                    onChange={handleInputChange}
+                  ></textarea>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="hasGST"
+                    checked={formData.hasGST}
+                    onChange={handleInputChange}
+                    className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                  />
+                  <label className="ml-3 block text-gray-700">
+                    I have a GST number (optional)
+                  </label>
+                </div>
+                <div className="flex items-start">
+                  <input
+                    type="checkbox"
+                    name="agreeToTerms"
+                    checked={formData.agreeToTerms}
+                    onChange={handleInputChange}
+                    required
+                    className="mt-1 h-5 w-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                  />
+                  <label className="ml-3 block text-gray-700">
+                    By proceeding to book, I agree to WTL Toursim Private Limited <a href="#" className="text-blue-600 hover:underline font-medium">Privacy Policy</a>, <a href="#" className="text-blue-600 hover:underline font-medium">User Agreement</a>, and <a href="#" className="text-blue-600 hover:underline font-medium">Terms of Service</a>.
+                  </label>
+                </div>
+                <p className="text-sm text-gray-500 mt-2">Live Pickup Location is starting within minutes.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Payment Section */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-2xl shadow-xl p-6 lg:sticky lg:top-6 border border-gray-100 z-20 isolate pointer-events-auto overflow-hidden">
+              {/* Trip Information Section */}
+              <div className="border-b border-gray-200 pb-6 mb-6">
+                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Trip Information
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Trip Type</span>
+                    <span className="font-medium capitalize">{carData.tripType.replace(/([A-Z])/g, ' $1').trim()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Date</span>
+                    <span className="font-medium">{carData.date}</span>
                   </div>
                   {carData.tripType === "roundTrip" && (
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <p className="text-xs text-gray-500">Return Date</p>
-                      <p className="font-medium text-gray-800">
-                        {carData.returnDate}
-                      </p>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Return Date</span>
+                      <span className="font-medium">{carData.returnDate}</span>
                     </div>
                   )}
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500">Time</p>
-                    <p className="font-medium text-gray-800">{carData.time}</p>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Time</span>
+                    <span className="font-medium">{carData.time}</span>
                   </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500">Trip Type</p>
-                    <p className="font-medium text-gray-800">
-                      {carData.tripType}
-                    </p>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Pickup</span>
+                    <span className="font-medium text-right">{carData.pickupLocation}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Drop-off</span>
+                    <span className="font-medium text-right">{carData.dropLocation}</span>
                   </div>
                   {carData.tripType === "rental" && carData.packageName && (
-                    <div className="bg-gray-50 p-3 rounded-lg col-span-2">
-                      <p className="text-xs text-gray-500">Package</p>
-                      <p className="font-medium text-gray-800">
-                        {carData.packageName}
-                      </p>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Package</span>
+                      <span className="font-medium">{carData.packageName}</span>
                     </div>
                   )}
-                  {carData.tripType === "rental" && carData.estimatedTravelTime && (
-                    <div className="bg-gray-50 p-3 rounded-lg col-span-2">
-                      <p className="text-xs text-gray-500">
-                        Estimated Travel Time
-                      </p>
-                      <p className="font-medium text-gray-800">
-                        {carData.estimatedTravelTime}
-                      </p>
-                    </div>
-                  )}
-                  <div className="bg-gray-50 p-3 rounded-lg col-span-2">
-                    <p className="text-xs text-gray-500">Distance</p>
-                    <p className="font-medium text-gray-800">
-                      {carData.distance} km
-                    </p>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Distance</span>
+                    <span className="font-medium">{carData.distance} km</span>
                   </div>
                 </div>
               </div>
 
-              {/* Coupon Section - Moved to top of right column */}
-              <div className="bg-blue-50 rounded-lg p-4 mb-6">
-                <label className="block text-sm font-medium text-blue-900 mb-2">Coupon Code</label>
+              {/* Coupons Section */}
+              <div className="border-b border-gray-200 pb-6 mb-6">
+                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l2-2 4 4M7 7h10a2 2 0 012 2v0a2 2 0 01-.586 1.414l-8 8A2 2 0 019 19H7a2 2 0 01-2-2v-2a2 2 0 01.586-1.414l8-8A2 2 0 0115 5" />
+                  </svg>
+                  Coupons
+                </h3>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                     placeholder="Enter coupon code"
-                    className="flex-1 border border-blue-200 rounded-md px-3 py-2"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <button onClick={handleApplyCoupon} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                  <button
+                    type="button"
+                    onClick={handleManualApply}
+                    className="px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!couponCode.trim() || isSubmitting}
+                  >
                     Apply
                   </button>
                 </div>
-                {couponError && <p className="text-red-600 text-sm mt-2">{couponError}</p>}
-                {discountApplied && !couponError && (
-                  <p className="text-green-700 text-sm mt-2">Coupon applied{discountPercent > 0 ? `: ${discountPercent}% off` : `: ₹${discountAmount} off`}</p>
+                {discountApplied && (
+                  <div className="mt-3 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-sm font-semibold text-green-700">Applied: {couponCode}</span>
+                      <span className="text-sm text-green-700">-₹{discountAmount}</span>
+                    </div>
+                    <button type="button" onClick={clearCoupon} className="text-xs font-medium text-green-700 hover:text-green-800 hover:underline">Remove</button>
+                  </div>
+                )}
+                {couponError && (
+                  <p className="text-sm text-red-600 mt-2">{couponError}</p>
                 )}
                 {availableCoupons && availableCoupons.length > 0 && (
-                  <div className="mt-3">
-                    <p className="text-xs text-blue-900 mb-1">Available Coupons:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {availableCoupons.slice(0,6).map((c) => (
-                        <button
-                          key={c.couponCode}
-                          type="button"
-                          onClick={() => setCouponCode(String(c.couponCode || "").toUpperCase())}
-                          className="px-2 py-1 text-xs bg-white border border-blue-200 rounded hover:bg-blue-100"
-                          title="Click to fill coupon"
-                        >
-                          {c.couponCode}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {availableCoupons.slice(0, 4).map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => applyCoupon(c)}
+                        className={`text-left border-2 rounded-xl p-3 transition ${
+                          couponCode.trim().toUpperCase() === String(c.couponCode || "").trim().toUpperCase() && discountApplied
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-gray-200 hover:border-green-400 hover:bg-green-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-gray-800">{c.couponCode}</span>
+                          <span className="text-green-700 font-bold">-₹{c.priceDiscount}</span>
+                        </div>
+                        {c.expiryDate && (
+                          <p className="text-xs text-gray-500 mt-1">Valid till {c.expiryDate}</p>
+                        )}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
 
-              {/* Booking Form */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                    placeholder="Enter your name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                    placeholder="Enter your email"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    className={`w-full px-3 py-2 border-2 ${
-                      formErrors.phone ? "border-red-500" : "border-gray-200"
-                    } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300`}
-                    placeholder="Enter your 10-digit phone number"
-                    value={formData.phone}
-                    onChange={handlePhoneChange}
-                    pattern="[0-9]{10}"
-                    maxLength={10}
-                    disabled={isSubmitting}
-                  />
-                  {formErrors.phone && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {formErrors.phone}
-                    </p>
+              {/* Fare Breakup Section */}
+              <div className="border-b border-gray-200 pb-6 mb-6">
+                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  Fare Breakup
+                </h3>
+                <div className="space-y-3">
+                  {/* Round Trip Invoice */}
+                  {carData.tripType === "roundTrip" &&
+                    (() => {
+                      const baseFare = Number(carData.price);
+                      const numberOfDays = Number(carData.days);
+                      const driverCost = driverrate * numberOfDays;
+                      const appliedDisc = discountApplied ? Number(discountAmount || 0) : 0;
+                      const discountedBaseFare = Math.max(0, baseFare - appliedDisc);
+                      const subTotal = driverCost + discountedBaseFare;
+                      const gstAmount = subTotal * 0.05;
+                      const serviceCharge = subTotal * 0.1;
+                      const totalAmount = subTotal + gstAmount + serviceCharge;
+
+                      return (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Base Fare</span>
+                            <span className="font-medium">₹{baseFare}</span>
+                          </div>
+                          {discountApplied && discountAmount > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Discount ({discountPercent}%{Number.isFinite(couponMaxDiscount) ? `, max ₹${couponMaxDiscount}` : ""})</span>
+                              <span className="font-medium text-green-600">-₹{discountAmount}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Driver Bhata/Day</span>
+                            <span className="font-medium">₹{driverrate}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Days</span>
+                            <span className="font-medium">{numberOfDays}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Amount (DriverRate+BaseFare)</span>
+                            <span className="font-medium">₹{subTotal}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">GST (5%)</span>
+                            <span className="font-medium">₹{gstAmount.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Service Charge (10%)</span>
+                            <span className="font-medium">₹{serviceCharge.toFixed(2)}</span>
+                          </div>
+                          <div className="border-t border-gray-300 pt-3 mt-3">
+                            <div className="flex justify-between">
+                              <span className="font-bold text-lg">Total Amount</span>
+                              <span className="font-bold text-xl text-blue-600">₹{totalAmount.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+
+                  {/* One Way Invoice */}
+                  {carData.tripType === "oneWay" && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Base Fare</span>
+                        <span className="font-medium">₹{carData.price}</span>
+                      </div>
+                      {discountApplied && discountAmount > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Discount ({discountPercent}%{Number.isFinite(couponMaxDiscount) ? `, max ₹${couponMaxDiscount}` : ""})</span>
+                          <span className="font-medium text-green-600">-₹{discountAmount}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Service Charge (10%)</span>
+                        <span className="font-medium">
+                          ₹
+                          {pricing.isCalculated
+                            ? pricing.service
+                            : (() => {
+                                const base = Math.max(0, Number(carData.price) - Number(discountAmount || 0));
+                                return Math.round(base * 0.1);
+                              })()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">GST (5%)</span>
+                        <span className="font-medium">
+                          ₹
+                          {pricing.isCalculated
+                            ? pricing.gst
+                            : (() => {
+                                const base = Math.max(0, Number(carData.price) - Number(discountAmount || 0));
+                                return Math.round(base * 0.05);
+                              })()}
+                        </span>
+                      </div>
+                      <div className="border-t border-gray-300 pt-3 mt-3">
+                        <div className="flex justify-between">
+                          <span className="font-bold text-lg">Total Amount</span>
+                          <span className="font-bold text-xl text-blue-600">
+                            ₹
+                            {pricing.isCalculated
+                              ? pricing.total
+                              : (() => {
+                                  const base = Math.max(0, Number(carData.price) - Number(discountAmount || 0));
+                                  return base + Math.round(base * 0.1) + Math.round(base * 0.05);
+                                })()}
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Rental Invoice */}
+                  {carData.tripType === "rental" && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Base Amount</span>
+                        <span className="font-medium">₹{carData.price}</span>
+                      </div>
+                      {discountApplied && discountAmount > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Discount ({discountPercent}%{Number.isFinite(couponMaxDiscount) ? `, max ₹${couponMaxDiscount}` : ""})</span>
+                          <span className="font-medium text-green-600">-₹{discountAmount}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">GST (5%)</span>
+                        <span className="font-medium">
+                          ₹{(() => { const base = Math.max(0, Number(carData.price) - Number(discountAmount || 0)); return Math.round(base * 0.05); })()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Service Charge (10%)</span>
+                        <span className="font-medium">
+                          ₹{(() => { const base = Math.max(0, Number(carData.price) - Number(discountAmount || 0)); return Math.round(base * 0.1); })()}
+                        </span>
+                      </div>
+                      <div className="border-t border-gray-300 pt-3 mt-3">
+                        <div className="flex justify-between">
+                          <span className="font-bold text-lg">Total Amount</span>
+                          <span className="font-bold text-xl text-blue-600">
+                            ₹
+                            {(() => { const base = Math.max(0, Number(carData.price) - Number(discountAmount || 0)); return base + Math.round(base * 0.05) + Math.round(base * 0.1); })()}
+                          </span>
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
+                <p className="text-sm text-gray-500 mt-3">Includes all taxes</p>
               </div>
 
               {/* Payment Options */}
-              <div className="mt-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4">
                   Payment Options
                 </h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <label
                     htmlFor="payment-upi"
-                    className={`cursor-pointer border-2 rounded-lg p-4 text-center transition-all duration-200 ${
+                    className={`block w-full relative select-none cursor-pointer border-2 rounded-xl p-4 text-center transition-all duration-200 shadow-sm ${
                       selectedPaymentMethod === "UPI"
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-blue-300"
+                        ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
+                        : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-md"
                     }`}
                   >
                     <input
@@ -1228,7 +1597,7 @@ function InvoiceContent() {
                         setPaymentType("");
                         clearPaymentError(); // Clear any existing payment errors
                       }}
-                      className="hidden"
+                      className="sr-only"
                       disabled={isSubmitting}
                     />
                     <div className="text-sm font-semibold">Online</div>
@@ -1240,10 +1609,10 @@ function InvoiceContent() {
                   
                   <label
                     htmlFor="payment-cash"
-                    className={`cursor-pointer border-2 rounded-lg p-4 text-center transition-all duration-200 ${
+                    className={`block w-full relative select-none cursor-pointer border-2 rounded-xl p-4 text-center transition-all duration-200 shadow-sm ${
                       selectedPaymentMethod === "Cash"
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-blue-300"
+                        ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
+                        : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-md"
                     }`}
                   >
                     <input
@@ -1257,7 +1626,7 @@ function InvoiceContent() {
                         setPaymentType("full"); // Cash is always full payment
                         clearPaymentError(); // Clear any existing payment errors
                       }}
-                      className="hidden"
+                      className="sr-only"
                       disabled={isSubmitting}
                     />
                     <div className="text-sm font-semibold">Cash</div>
@@ -1269,16 +1638,16 @@ function InvoiceContent() {
               {/* Payment Type Options (visible only for online payments) */}
               {selectedPaymentMethod !== "" && selectedPaymentMethod !== "Cash" && (
                 <div className="mt-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4">
                     Payment Type
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <label
                       htmlFor="payment-full"
-                      className={`cursor-pointer border-2 rounded-lg p-4 text-center transition-all duration-200 ${
+                      className={`block w-full relative select-none cursor-pointer border-2 rounded-xl p-4 text-center transition-all duration-200 shadow-sm ${
                         paymentType === "full"
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-200 hover:border-blue-300"
+                          ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
+                          : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-md"
                       }`}
                     >
                       <input
@@ -1288,7 +1657,7 @@ function InvoiceContent() {
                         value="full"
                         checked={paymentType === "full"}
                         onChange={(e) => setPaymentType(e.target.value)}
-                        className="hidden"
+                        className="sr-only"
                         disabled={isSubmitting}
                       />
                       <div className="text-sm font-semibold">Full Payment</div>
@@ -1298,10 +1667,10 @@ function InvoiceContent() {
                     </label>
                     <label
                       htmlFor="payment-partial"
-                      className={`cursor-pointer border-2 rounded-lg p-4 text-center transition-all duration-200 ${
+                      className={`block w-full relative select-none cursor-pointer border-2 rounded-xl p-4 text-center transition-all duration-200 shadow-sm ${
                         paymentType === "partial"
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-200 hover:border-blue-300"
+                          ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
+                          : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-md"
                       }`}
                     >
                       <input
@@ -1311,7 +1680,7 @@ function InvoiceContent() {
                         value="partial"
                         checked={paymentType === "partial"}
                         onChange={(e) => setPaymentType(e.target.value)}
-                        className="hidden"
+                        className="sr-only"
                         disabled={isSubmitting}
                       />
                       <div className="text-sm font-semibold">
@@ -1347,39 +1716,22 @@ function InvoiceContent() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Footer / Additional Information */}
-        <div className="mt-4 text-center text-gray-600">
-          <p className="text-xs">
-            By clicking "Book Now" you agree to our{" "}
-            <a
-              href="#"
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Terms and Conditions
-            </a>{" "}
-            and{" "}
-            <a
-              href="#"
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Privacy Policy
-            </a>
-          </p>
+
         </div>
 
         {showSuccessPopup && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 text-center animate-fade-in">
-              <div className="relative w-24 h-24 mx-auto mb-6">
-                <div className="absolute inset-0 bg-green-500 rounded-full animate-scale-in"></div>
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 text-center shadow-2xl">
+              <div className="relative w-20 h-20 mx-auto mb-6">
+                <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75"></div>
+                <div className="absolute inset-0 bg-green-500 rounded-full"></div>
                 <svg
-                  className="absolute inset-0 w-full h-full text-white animate-draw-check"
+                  className="absolute inset-0 w-full h-full text-white p-4"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="3"
+                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
@@ -1389,16 +1741,14 @@ function InvoiceContent() {
               <h3 className="text-2xl font-bold text-gray-800 mb-2">
                 Booking Successful!
               </h3>
-              <p className="text-gray-600 mb-4">Your booking ID: {bookingId}</p>
-              <p className="text-sm text-gray-500">
+              <p className="text-gray-600 mb-1">Your booking ID: <span className="font-bold text-blue-600">{bookingId}</span></p>
+              <p className="text-sm text-gray-500 mt-4">
                 Redirecting to homepage...
               </p>
             </div>
           </div>
         )}
       </div>
-
-      
     </div>
   );
 }
