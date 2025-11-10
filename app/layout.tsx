@@ -44,7 +44,7 @@ export const metadata = {
   title: "World Trip Link - Travel Booking",
   description: "Book cabs, buses and explore top destinations",
   generator: "v0.dev",
-  metadataBase: new URL("https://api.worldtriplink.com"),
+  metadataBase: new URL("http://localhost:8085"),
   alternates: {
     canonical: "https://www.worldtriplink.com/cities/Cab-Service-Chandarpur",
   },
