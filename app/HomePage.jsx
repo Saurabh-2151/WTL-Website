@@ -79,37 +79,37 @@ export default function HomePage() {
   if (!mounted) return null
 
   return (
-    <main className="min-h-screen">
-      <div className="fixed inset-0 overflow-hidden">
-        {currentTab === "cabs" ? (
-          <>
-            <Image
-              src="/images/generated-image (2).png"
-              alt="Background"
-              fill
-              style={{ objectFit: "cover" }}
-              priority
-              quality={75}
-            />
-            <div className="absolute inset-0 bg-black/40" />
-          </>
-        ) : (
-          <>
-            <Image
-              src={bgImage}
-              alt="Background"
-              fill
-              style={{ objectFit: "cover" }}
-              priority
-              quality={75}
-            />
-            <div className="absolute inset-0 bg-black/40" />
-          </>
-        )}
-      </div>
-
+    <main className="min-h-screen bg-white overflow-x-hidden">
       <div className="relative">
-        <section className="min-h-screen">
+        {/* Hero section with background image only behind navbar + booking form */}
+        <section className="relative min-h-screen">
+          <div className="absolute inset-0 z-0 overflow-hidden">
+            {currentTab === "cabs" ? (
+              <>
+                <Image
+                  src="/images/Sea, Sky And Frangipani, Wallpapers, Backdrop Background Image And Wallpaper for Free Download.jpg"
+                  alt="Cab Background"
+                  fill
+                  style={{ objectFit: "cover" }}
+                  priority
+                  quality={100}
+                />
+              </>
+            ) : (
+              <>
+                <Image
+                  src={bgImage}
+                  alt="Background"
+                  fill
+                  style={{ objectFit: "cover" }}
+                  priority
+                  quality={75}
+                />
+                <div className="absolute inset-0 bg-black/40" />
+              </>
+            )}
+          </div>
+
           <div className="relative z-10 pt-0">
             <Navbar2 />
             {/* Spacer to offset fixed navbar height */}

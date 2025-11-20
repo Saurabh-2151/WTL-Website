@@ -172,28 +172,26 @@ export default function Navbar({ onTabChange, disableForm = false }: NavbarProps
 
           {/* Mobile View */}
           <div className="md:hidden">
-            <div className="flex overflow-x-auto hide-scrollbar pb-2">
-              <div className="px-2 w-full flex justify-center">
-                <div className="inline-flex items-center gap-1 rounded-full bg-white/30 text-gray-800 backdrop-blur px-2 py-2 shadow-md border border-white/30">
-                  {navItems.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => handleTabClick(item.id)}
-                      className={`relative rounded-full px-4 py-2 text-lg font-bold transition-all duration-200 whitespace-nowrap ${
-                        activeTab === item.id && item.id === 'cabs'
-                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
-                          : 'text-gray-800 hover:text-gray-900 bg-white/20 backdrop-blur-sm'
-                      }`}
-                      title={item.label}
-                    >
-                      <span className="mr-1">{item.icon}</span>
-                      <span>{item.label}</span>
-                      {item.id !== 'cabs' && (
-                        <span className="ml-1 align-middle text-[9px] font-bold text-gray-600">Soon</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
+            <div className="flex overflow-x-auto hide-scrollbar pb-2 px-2">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/30 text-gray-800 backdrop-blur px-2 py-2 shadow-md border border-white/30">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleTabClick(item.id)}
+                    className={`relative rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 whitespace-nowrap ${
+                      activeTab === item.id && item.id === 'cabs'
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
+                        : 'text-gray-800 hover:text-gray-900 bg-white/20 backdrop-blur-sm'
+                    }`}
+                    title={item.label}
+                  >
+                    <span className="mr-1">{item.icon}</span>
+                    <span>{item.label}</span>
+                    {item.id !== 'cabs' && (
+                      <span className="ml-1 align-middle text-[9px] font-bold text-gray-600">Soon</span>
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
           </div>

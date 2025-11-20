@@ -268,7 +268,7 @@ function SearchResultsContent() {
   
       // 3. Make the request with identical Postman configuration
       const response = await axios.post(
-        'https://api.worldtriplink.com/api/cab1',
+        'http://localhost:8085/api/cab1',
         params.toString(),
         {
           // headers: {

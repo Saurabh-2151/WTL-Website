@@ -517,7 +517,7 @@ useEffect(() => {
     try {
       console.log("Calculating distance between:", origin, "and", destination)
 
-      const response = await fetch("https://api.worldtriplink.com/api/cab1", {
+      const response = await fetch("http://localhost:8085/api/cab1", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -661,53 +661,64 @@ useEffect(() => {
 
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-6xl mx-auto mt-[-16px] sm:mt-[-24px] md:mt-[-48px] lg:mt-[-64px] bg-gradient-to-b from-white/60 to-white/40 backdrop-blur-md rounded-2xl shadow-2xl p-6 md:p-8 ring-1 ring-white/40"
+        className="w-full max-w-6xl mx-auto mt-[-12px] sm:mt-[-20px] md:mt-[-40px] lg:mt-[-56px]
+                   bg-white/30
+                   rounded-[28px]
+                   p-6 md:p-8
+                   border border-white/40"
       >
         <div className="space-y-6">
-          {/* Trip Type Selection */}
-          <div className="flex flex-wrap gap-3">
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="radio"
-                name="tripType"
-                value="oneWay"
-                checked={tripType === "oneWay"}
-                onChange={(e) => setTripType(e.target.value)}
-                className="form-radio text-emerald-500 focus:ring-emerald-500"
-                required
-              />
-              <span className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 shadow-sm ${tripType === 'oneWay' ? 'bg-emerald-500 text-white ring-2 ring-emerald-400' : 'bg-white text-gray-700 hover:bg-emerald-50 ring-1 ring-gray-300'}`}>One Way</span>
-            </label>
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="radio"
-                name="tripType"
-                value="roundTrip"
-                checked={tripType === "roundTrip"}
-                onChange={(e) => setTripType(e.target.value)}
-                className="form-radio text-emerald-500 focus:ring-emerald-500"
-                required
-              />
-              <span className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 shadow-sm ${tripType === 'roundTrip' ? 'bg-emerald-500 text-white ring-2 ring-emerald-400' : 'bg-white text-gray-700 hover:bg-emerald-50 ring-1 ring-gray-300'}`}>Round Trip</span>
-            </label>
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="radio"
-                name="tripType"
-                value="rental"
-                checked={tripType === "rental"}
-                onChange={(e) => setTripType(e.target.value)}
-                className="form-radio text-emerald-500 focus:ring-emerald-500"
-                required
-              />
-              <span className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 shadow-sm ${tripType === 'rental' ? 'bg-emerald-500 text-white ring-2 ring-emerald-400' : 'bg-white text-gray-700 hover:bg-emerald-50 ring-1 ring-gray-300'}`}>Rental Trip</span>
-            </label>
+          {/* Trip Type Selection as Segmented Control */}
+          <div className="w-full max-w-md mx-auto">
+
+            {/* Hidden input to keep tripType in form data */}
+            <input type="hidden" name="tripType" value={tripType} />
+
+            <div className="flex rounded-full bg-white/30 border border-white/40 p-1 gap-1">
+
+              <button
+                type="button"
+                onClick={() => setTripType("oneWay")}
+                className={`flex-1 px-3 py-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-150 ${
+                  tripType === "oneWay"
+                    ? "bg-emerald-500 text-white"
+                    : "bg-transparent text-black hover:bg-white/30"
+                }`}
+              >
+                One Way
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTripType("roundTrip")}
+                className={`flex-1 px-3 py-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-150 ${
+                  tripType === "roundTrip"
+                    ? "bg-emerald-500 text-white"
+                    : "bg-transparent text-black hover:bg-white/30"
+                }`}
+              >
+                Round Trip
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTripType("rental")}
+                className={`flex-1 px-3 py-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-150 ${
+                  tripType === "rental"
+                    ? "bg-emerald-500 text-white"
+                    : "bg-transparent text-black hover:bg-white/30"
+                }`}
+              >
+                Rental Trip
+              </button>
+            </div>
           </div>
 
           {/* Package Selection for Rental Trip */}
           {tripType === "rental" && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200 shadow">
-              <label className="block text-sm font-semibold text-gray-800 mb-3">
+            <div className="bg-white/30 rounded-2xl p-4 border border-white/40">
+
+              <label className="block text-sm font-semibold text-black mb-3">
                 Select Package
               </label>
               <div className="relative">
@@ -715,7 +726,8 @@ useEffect(() => {
                   name="packageName"
                   value={packageName}
                   onChange={(e) => setPackageName(e.target.value)}
-                  className="w-full p-3.5 pr-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/95 text-gray-900 appearance-none cursor-pointer shadow-inner"
+                  className="w-full p-3.5 pr-10 border border-white/40 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400 bg-white/40 text-black placeholder-gray-600 appearance-none cursor-pointer"
+
                   required
                 >
                   <option value="" disabled className="bg-white text-gray-900">
@@ -731,113 +743,115 @@ useEffect(() => {
                 {/* Custom dropdown arrow */}
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                   <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
               </div>
-              <div className="mt-2 text-xs text-gray-600">
+              <div className="mt-2 text-xs text-black/80">
+
                 Choose your rental package based on duration and distance needs
               </div>
             </div>
           )}
 
-          {/* Location and Time Selection */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Pickup Location */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1">Pickup Location</label>
-              <div className="relative">
-                <input
-                  ref={pickupRef}
-                  type="text"
-                  placeholder="Enter pickup location"
-                  value={pickupLocation}
-                  onChange={(e) => setPickupLocation(e.target.value)}
-                  onFocus={() => {
-                    // Check if autocomplete is working when user focuses on input
-                    if (scriptLoaded && !pickupAutocompleteRef.current) {
-                      console.log("Pickup input focused but no autocomplete - re-initializing")
-                      setTimeout(() => initializeAutocomplete(), 100)
-                    }
-                  }}
-                  className="w-full p-3.5 pl-11 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/95 text-gray-900 placeholder-gray-500 shadow-inner"
-                  required
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
+          {/* Location and Time Selection - large horizontal tiles with Go on the right */}
+          <div className="w-full">
+            <div
+              className={`grid grid-cols-1 gap-4 md:gap-5 items-stretch ${
+                tripType === "roundTrip" ? "md:grid-cols-6" : "md:grid-cols-5"
+              }`}
+            >
+
+              {/* From (Pickup) */}
+              <div className="flex flex-col">
+                <div className="text-[13px] font-semibold text-black mb-2">From</div>
+                <div className="relative h-full">
+                  <input
+                    ref={pickupRef}
+                    type="text"
+                    placeholder="Enter pickup location"
+                    value={pickupLocation}
+                    onChange={(e) => setPickupLocation(e.target.value)}
+                    onFocus={() => {
+                      if (scriptLoaded && !pickupAutocompleteRef.current) {
+                        console.log("Pickup input focused but no autocomplete - re-initializing")
+                        setTimeout(() => initializeAutocomplete(), 100)
+                      }
+                    }}
+                    className="w-full h-full pl-9 pr-4 py-4 rounded-2xl border border-white/60 bg-white text-sm text-black placeholder-black focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
+                    required
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-4 w-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                  </div>
                 </div>
-                {mapsError && (
-                  <p className="mt-1 text-xs text-red-600 font-medium">{mapsError}. Address suggestions may not work.</p>
+              </div>
+
+              {/* To (Drop) */}
+              <div className="flex flex-col h-full">
+                <div className="text-[13px] font-semibold text-black mb-2">
+                  {tripType === "rental" ? "To (Optional)" : "To"}
+                </div>
+                <div className="relative h-full">
+                  <input
+                    ref={dropRef}
+                    type="text"
+                    placeholder={tripType === "rental" ? "Enter drop location (optional)" : "Enter drop location"}
+                    value={dropLocation}
+                    onChange={(e) => setDropLocation(e.target.value)}
+                    onFocus={() => {
+                      if (scriptLoaded && !dropAutocompleteRef.current) {
+                        console.log("Drop input focused but no autocomplete - re-initializing")
+                        setTimeout(() => initializeAutocomplete(), 100)
+                      }
+                    }}
+                    className="w-full h-full pl-9 pr-4 py-4 rounded-2xl border border-white/60 bg-white text-sm text-black placeholder-black focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
+                    required={tripType !== "rental"}
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-4 w-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                {tripType === "rental" && (
+                  <div className="mt-1 text-[10px] text-black/70">
+                    Drop location is optional for rental trips
+                  </div>
                 )}
               </div>
-            </div>
 
-            {/* Drop Location - Modified for Rental Trip */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1">
-                {tripType === "rental" ? "Drop Location (Optional)" : "Drop Location"}
-              </label>
-              <div className="relative">
-                <input
-                  ref={dropRef}
-                  type="text"
-                  placeholder={tripType === "rental" ? "Enter drop location (optional)" : "Enter drop location"}
-                  value={dropLocation}
-                  onChange={(e) => setDropLocation(e.target.value)}
-                  onFocus={() => {
-                    // Check if autocomplete is working when user focuses on input
-                    if (scriptLoaded && !dropAutocompleteRef.current) {
-                      console.log("Drop input focused but no autocomplete - re-initializing")
-                      setTimeout(() => initializeAutocomplete(), 100)
-                    }
-                  }}
-                  className="w-full p-3.5 pl-11 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/95 text-gray-900 placeholder-gray-500 shadow-inner"
-                  required={tripType !== "rental"}
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                </div>
-              </div>
-              {tripType === "rental" && (
-                <div className="mt-1 text-xs text-gray-600">
-                  For rental trips, drop location is optional
-                </div>
-              )}
-            </div>
-
-            {/* Pickup Date */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1">Pickup Date</label>
-              <div className="relative">
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Date (Pickup Date) */}
+              <div className="flex flex-col">
+                <div className="text-[13px] font-semibold text-black mb-2">Date</div>
+                <div className="relative h-full">
+                  <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                    <svg className="h-4 w-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </span>
@@ -847,7 +861,7 @@ useEffect(() => {
                     value={pickupDate}
                     onChange={(e) => handleDateSelection(e.target.value, "pickup")}
                     min={today}
-                    className="w-full p-3.5 pl-11 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/95 text-gray-900 hide-native-picker shadow-inner"
+                    className="w-full h-full pl-9 pr-3 py-4 rounded-2xl border border-white/60 bg-white text-sm text-black hide-native-picker focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
                     required
                     ref={pickupDateRef}
                     onClick={() => {
@@ -858,46 +872,42 @@ useEffect(() => {
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Return Date */}
-            {tripType === "roundTrip" && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-1">Return Date</label>
-                <div className="relative">
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Return Date (only for round trip) */}
+              {tripType === "roundTrip" && (
+                <div className="flex flex-col">
+                  <div className="text-[13px] font-semibold text-black mb-2">Return Date</div>
+                  <div className="relative h-full">
+                    <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                      <svg className="h-4 w-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </span>
                     <input
-                      id="Returndate"
+                      id="Returndate-top"
                       type="date"
                       value={Returndate}
                       onChange={(e) => handleDateSelection(e.target.value, "return")}
                       min={pickupDate || today}
-                      className="w-full p-3.5 pl-11 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/95 text-gray-900 hide-native-picker shadow-inner"
+                      className="w-full h-full pl-9 pr-3 py-4 rounded-2xl border border-white/60 bg-white text-sm text-black hide-native-picker focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
                       required
-                      ref={returnDateRef}
                       onClick={() => {
-                        if (returnDateRef.current && typeof returnDateRef.current.showPicker === 'function') {
-                          returnDateRef.current.showPicker();
+                        const el = document.getElementById('Returndate-top') as HTMLInputElement | null;
+                        if (el && typeof el.showPicker === 'function') {
+                          el.showPicker();
                         }
                       }}
                     />
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Pickup Time */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1">Pickup Time</label>
-              <div className="relative">
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Pickup Time */}
+              <div className="flex flex-col">
+                <div className="text-[13px] font-semibold text-black mb-2">Pickup Time</div>
+                <div className="relative h-full">
+                  <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                    <svg className="h-4 w-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </span>
@@ -906,7 +916,7 @@ useEffect(() => {
                     type="time"
                     value={pickupTime}
                     onChange={(e) => setPickupTime(e.target.value)}
-                    className="w-full p-3.5 pl-11 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/95 text-gray-900 hide-native-picker shadow-inner"
+                    className="w-full h-full pl-9 pr-3 py-4 rounded-2xl border border-white/60 bg-white text-sm text-black hide-native-picker focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     required
                     ref={pickupTimeRef}
                     onClick={() => {
@@ -915,49 +925,33 @@ useEffect(() => {
                       }
                     }}
                   />
+                  {isLoadingTimeSlots && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
+                    </div>
+                  )}
                 </div>
-                {isLoadingTimeSlots && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-500"></div>
-                  </div>
-                )}
+              </div>
+
+              {/* Go tile on the right */}
+              <div className="flex items-stretch">
+                <button
+                  type="submit"
+                  className="w-full h-full rounded-2xl bg-gray-300 text-white text-base font-semibold flex items-center justify-center hover:bg-gray-400 transition-colors"
+                >
+                  Go
+                </button>
               </div>
             </div>
           </div>
 
-          {error && <div className="text-red-500 text-sm text-center">{error}</div>}
-          {locationError && <div className="text-red-500 text-sm text-center">{locationError}</div>}
+          {error && <div className="text-red-500 text-sm text-center mt-3">{error}</div>}
+          {locationError && <div className="text-red-500 text-sm text-center mt-1">{locationError}</div>}
 
-          <div className="flex justify-center mt-6 space-x-4">
-            <button
-              type="submit"
-              className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-12 py-3.5 rounded-full text-lg font-semibold hover:shadow-xl shadow-lg transition-all ring-1 ring-emerald-400 hover:-translate-y-0.5"
-            >
-              Search Available Cabs
-            </button>
-            {/* Debug button - only show when autocomplete is actually broken */}
-            {process.env.NODE_ENV === 'development' &&
-             scriptLoaded &&
-             pickupRef.current &&
-             dropRef.current &&
-             (!pickupAutocompleteRef.current || !dropAutocompleteRef.current) && (
-              <button
-                type="button"
-                onClick={() => {
-                  console.log("Manual autocomplete re-initialization triggered")
-                  cleanupAutocomplete()
-                  setTimeout(() => initializeAutocomplete(), 100)
-                }}
-                className="bg-blue-500 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
-                title="Re-initialize autocomplete (dev only)"
-              >
-                🔄 Fix Autocomplete
-              </button>
-            )}
-          </div>
         </div>
       </form>
-      {/*
+
+      {/* 
       {!loading && (showPopup && !isLoggedIn) && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9996] p-2 sm:p-4">
           <div className="bg-slate-800 rounded-lg shadow-xl p-4 sm:p-6 w-full max-w-md mx-2 sm:mx-4">
@@ -1013,6 +1007,7 @@ useEffect(() => {
         </div>
       )}
       */}
+
     </>
   )
 }

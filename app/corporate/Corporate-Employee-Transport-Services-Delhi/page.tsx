@@ -15,6 +15,7 @@ import FloatingIcons from "@/components/FloatingIcons";
 import InquiryPopup from "@/components/InquiryPopup";
 import InquiryForm from "@/components/InquiryForm";
 import Head from "next/head";
+import CorporateCabHero from "@/components/CorporateCabHero";
 
 {/* <Head>
 <title>Corporate Employee Transport Services in Delhi | WTL Tourism</title>
@@ -171,38 +172,15 @@ export default function DelhiCorporateCabServicePage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar onTabChange={handleTabChange} disableForm={true} />
-        
-        {/* Hero Section with Background */}
-        <div className="relative h-[550px] w-full">
-          <div className="absolute inset-0">
-            <Image
-              src="/images/delhi.jpg"
-              alt="Delhi Corporate Cab Service"
-              fill
-              className="object-cover"
-              priority
-            />
-            <div className="absolute inset-0 bg-black/60"></div>
-          </div>
 
-          <div className="relative z-10 h-full">
-            <div className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 w-full mx-auto h-full flex flex-col justify-center">
-              <div className="text-center mb-8">
-                <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                  Corporate Cab Services in Delhi
-                </h1>
-                <p className="text-xl text-white/90 max-w-3xl mx-auto">
-                  Professional Corporate Employee Transport Solutions
-                </p>
-                <p className="text-lg text-white/80 max-w-3xl mx-auto mt-4">
-                  Reliable & Affordable Corporate Cab Services in Delhi by WTL Tourism Pvt. Ltd.
-                </p>
-              </div>
-              
-              {renderBookingForm()}
-            </div>
-          </div>
-        </div>
+        {/* Shared hero with background image + transparent CabBookingForm */}
+        <CorporateCabHero
+          imageSrc="/images/delhi.jpg"
+          alt="Delhi Corporate Cab Service"
+          title="Corporate Cab Services in Delhi"
+          subtitle="Professional Corporate Employee Transport Solutions"
+          description="Reliable & Affordable Corporate Cab Services in Delhi by WTL Tourism Pvt. Ltd."
+        />
 
         {/* Main Content */}
         <main className="bg-gray-50 w-full">

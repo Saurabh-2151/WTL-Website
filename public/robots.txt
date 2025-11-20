@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Host
-Host: https://api.worldtriplink.com
+Host: http://localhost:8085
 
 # Sitemaps
-Sitemap: https://api.worldtriplink.com/sitemap.xml
+Sitemap: http://localhost:8085/sitemap.xml

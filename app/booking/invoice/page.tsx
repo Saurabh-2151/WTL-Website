@@ -153,7 +153,7 @@ function InvoiceContent() {
   useEffect(() => {
     const fetchCoupons = async () => {
       try {
-        const base = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.worldtriplink.com";
+        const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8085";
         const res = await axios.get(`${base}/discount/getAll`);
         const items: DiscountDTO[] = res.data || [];
         const today = new Date();
@@ -350,7 +350,7 @@ function InvoiceContent() {
       return;
     }
     try {
-      const res = await fetch(`https://api.worldtriplink.com/discount/validate?code=${encodeURIComponent(couponCode.trim())}`);
+      const res = await fetch(`http://localhost:8085/discount/validate?code=${encodeURIComponent(couponCode.trim())}`);
       let data: any | null = null;
       if (!res.ok) {
         if (res.status === 410) {
@@ -359,7 +359,7 @@ function InvoiceContent() {
         }
         // Fallback: fetch all coupons and match locally (handles case/whitespace mismatches)
         try {
-          const la = await fetch("https://api.worldtriplink.com/discount/getAll");
+          const la = await fetch("http://localhost:8085/discount/getAll");
           if (la.ok) {
             const all = await la.json();
             const input = couponCode.trim().toUpperCase();
@@ -481,7 +481,7 @@ function InvoiceContent() {
     setIsSubmitting(true);
     try {
       const response = await fetch(
-        "https://api.worldtriplink.com/api/bookingConfirm",
+        "http://localhost:8085/api/bookingConfirm",
         {
           method: "POST",
           headers: {
@@ -665,7 +665,7 @@ function InvoiceContent() {
     setIsSubmitting(true);
 
     try {
-      const orderResponse = await axios.post("https://api.worldtriplink.com/api/payments/create-razorpay-order", {
+      const orderResponse = await axios.post("http://localhost:8085/api/payments/create-razorpay-order", {
         amount: amountToPay,
       });
       

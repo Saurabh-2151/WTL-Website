@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/api/', '/admin/'],
     },
-    sitemap: 'https://api.worldtriplink.com/sitemap.xml',
+    sitemap: 'http://localhost:8085/sitemap.xml',
   }
 } 
