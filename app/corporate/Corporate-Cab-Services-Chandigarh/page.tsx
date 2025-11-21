@@ -182,7 +182,7 @@ export default function ChandigarhCorporateCabServicePage() {
         <Navbar onTabChange={handleTabChange} disableForm={true} />
         
         {/* Hero Section with Background */}
-        <div className="relative h-[550px] w-full">
+        <div className="relative min-h-[550px] w-full flex items-stretch">
           <div className="absolute inset-0">
             <Image
               src="/images/Chandighar place.png"
@@ -194,9 +194,9 @@ export default function ChandigarhCorporateCabServicePage() {
             <div className="absolute inset-0 bg-black/60"></div>
           </div>
 
-          <div className="relative z-10 h-full">
-            <div className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 w-full mx-auto h-full flex flex-col justify-center">
-              <div className="text-center mb-8">
+          <div className="relative z-10 w-full">
+            <div className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 w-full mx-auto flex flex-col justify-center">
+              <div className="text-center mb-8 px-2 sm:px-4">
                 <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
                   Corporate Cab Service in Chandigarh
                 </h1>
@@ -205,7 +205,9 @@ export default function ChandigarhCorporateCabServicePage() {
                 </p>
               </div>
               
-              {renderBookingForm()}
+              <div className="w-full max-w-full sm:max-w-xl lg:max-w-3xl xl:max-w-4xl mx-auto">
+                {renderBookingForm()}
+              </div>
             </div>
           </div>
         </div>

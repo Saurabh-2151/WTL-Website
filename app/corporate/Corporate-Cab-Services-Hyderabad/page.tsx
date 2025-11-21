@@ -210,7 +210,7 @@ export default function HyderabadCorporateCabServicePage() {
       <FloatingIcons />
 
       {/* Hero Section */}
-      <div className="relative h-[550px] w-full">
+      <div className="relative min-h-[550px] w-full flex items-stretch">
         <div className="absolute inset-0">
           <Image
             src="/images/hyderabad.jpg"
@@ -222,9 +222,9 @@ export default function HyderabadCorporateCabServicePage() {
           />
           <div className="absolute inset-0 bg-black/60"></div>
         </div>
-        <div className="relative z-10 h-full">
-          <div className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 w-full mx-auto h-full flex flex-col justify-center">
-            <div className="text-center mb-8">
+        <div className="relative z-10 w-full">
+          <div className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 w-full mx-auto flex flex-col justify-center">
+            <div className="text-center mb-8 px-2 sm:px-4">
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 Corporate Cab Service in Hyderabad
               </h1>
@@ -232,12 +232,30 @@ export default function HyderabadCorporateCabServicePage() {
                 Safe, Reliable & Cost-Effective Employee Transportation
               </p>
             </div>
-            {renderBookingForm()}
+            <div className="w-full max-w-full sm:max-w-xl lg:max-w-3xl xl:max-w-4xl mx-auto">
+              {renderBookingForm()}
+            </div>
           </div>
         </div>
       </div>
 
       <section className="py-16 px-4 sm:px-6 lg:px-8 w-full mx-auto bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 border border-gray-100">
+          <div className="text-center mb-8">
+            <p className="text-lg md:text-xl text-gray-700 leading-relaxed text-left">
+              <strong>Corporate cab service in Hyderabad</strong> is not just about moving people from one place to another it’s about ensuring employees travel safely, arrive on time, and feel valued by their employers. Established in <strong>2016 in Pune, Worldtriplink (WTL Tourism Pvt Ltd)</strong> has grown into one of India’s most <strong>trusted corporate cab service providers</strong>, now with strong operations in <strong>Mumbai</strong> and <strong>Hyderabad</strong>.
+            </p>
+            <br />
+            <p className="text-lg md:text-xl text-gray-700 leading-relaxed text-left">
+              From a modest start with a handful of vehicles, WTL today manages 500+ registered cabs, services 50+ corporate offices, and operates across 100+ cities. In Hyderabad, WTL has become a preferred choice for IT companies, multinational corporations, and startups that need professional, reliable, and scalable employee transportation solutions.
+            </p>
+            <br />
+            <p className="text-lg md:text-xl text-gray-700 leading-relaxed text-left">
+              Our reputation rests on three pillars: <strong>affordability, safety, and reliability</strong>. With <strong>30+ personal cabs</strong>, shared and exclusive options, real time tracking, and eco friendly vehicles, WTL ensures that your employees commute with <strong>comfort and peace of mind</strong>.
+            </p>
+          </div>
+          <div className="w-full max-w-7xl mx-auto">
+            <div className="mb-8">
               <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 border border-gray-100">
                 <div className="text-center mb-8">
                   <p className="text-lg md:text-xl text-gray-700 leading-relaxed text-left">

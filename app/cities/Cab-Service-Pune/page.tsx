@@ -109,7 +109,7 @@ export default function PuneCabServicePage() {
           <Navbar onTabChange={handleTabChange} />
           
           {/* Hero Section */}
-          <div className="relative h-[550px]">
+          <div className="relative min-h-[550px] w-full flex items-stretch">
             <div className="absolute inset-0">
               <Image
                 src="/images/pune.jpg"
@@ -121,8 +121,8 @@ export default function PuneCabServicePage() {
               <div className="absolute inset-0 bg-black/60"></div>
             </div>
             
-            <div className="relative pt-16 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto h-full flex flex-col justify-center">
-              <div className="text-center mb-8">
+            <div className="relative pt-16 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full flex flex-col justify-center">
+              <div className="text-center mb-8 px-2 sm:px-4">
                 <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
                   Cab Service in Pune
                 </h1>
@@ -132,7 +132,9 @@ export default function PuneCabServicePage() {
               </div>
               
               {/* Booking Form */}
-              {renderBookingForm()}
+              <div className="w-full max-w-full sm:max-w-xl lg:max-w-3xl xl:max-w-4xl mx-auto">
+                {renderBookingForm()}
+              </div>
             </div>
           </div>
           
