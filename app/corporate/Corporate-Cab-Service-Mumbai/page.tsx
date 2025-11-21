@@ -176,7 +176,7 @@ export default function MumbaiCorporateCabServicePage() {
         <div className="relative h-[420px] md:h-[520px] lg:h-[550px] w-full">
           <div className="absolute inset-0">
             <Image
-              src="/images/mumbai.jpg"
+              src="/images/Mumbai Gate.jpg"
               alt="Mumbai Corporate Cab Service"
               fill
               className="object-cover"

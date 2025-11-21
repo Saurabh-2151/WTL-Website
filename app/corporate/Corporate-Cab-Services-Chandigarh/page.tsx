@@ -185,7 +185,7 @@ export default function ChandigarhCorporateCabServicePage() {
         <div className="relative h-[550px] w-full">
           <div className="absolute inset-0">
             <Image
-              src="/images/chandigarh.jpg"
+              src="/images/Chandighar place.png"
               alt="Chandigarh Corporate Cab Service"
               fill
               className="object-cover"

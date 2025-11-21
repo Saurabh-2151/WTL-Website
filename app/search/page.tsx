@@ -134,7 +134,6 @@ function SearchResultsContent() {
   const approxTime = (tripInfo?.estimatedTravelTime || tripInfo?.estimatedtime || tripInfo?.traveltime || tripInfo?.time || '') as string
   const [routeDuration, setRouteDuration] = useState<string>("")
   const belowMapImages = [
-    
     '/images/generated-image (8).png',
     '/images/generated-image (7).png',
     '/images/generated-image (10).png',
@@ -144,6 +143,7 @@ function SearchResultsContent() {
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
   const directionsRendererRef = useRef<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   const loadGoogleMaps = (apiKey: string) => {
     return new Promise<void>((resolve) => {
@@ -268,7 +268,7 @@ function SearchResultsContent() {
   
       // 3. Make the request with identical Postman configuration
       const response = await axios.post(
-        'http://localhost:8085/api/cab1',
+        'https://api.worldtriplink.com/api/cab1',
         params.toString(),
         {
           // headers: {
@@ -316,6 +316,7 @@ function SearchResultsContent() {
 
     const fetchData = async () => {
       try {
+        setIsLoading(true)
         const data = await fetchCabDataPost();
         debugLog("API response:", data);
         
@@ -337,6 +338,8 @@ function SearchResultsContent() {
         }
       } catch (error) {
         console.error("Error fetching cab data:", error);
+      } finally {
+        setIsLoading(false)
       }
     };
 
@@ -594,7 +597,41 @@ function SearchResultsContent() {
             {/* Show SUV radio buttons above SUV cards if SUV category is selected */}
             {selectedCategory === 'SUV' && carTypes['SUV'].renderOptions}
 
-            {displayedCars.map((car: Car, index) => {
+            {/* Skeleton while loading prices / trip info */}
+            {isLoading && (
+              <>
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={`skeleton-${i}`}
+                    className="bg-white rounded-xl overflow-hidden shadow-md animate-pulse"
+                  >
+                    <div className="flex flex-col md:flex-row">
+                      <div className="w-full md:w-2/5 h-64 bg-gray-200" />
+                      <div className="flex-1 p-6 space-y-4">
+                        <div className="flex justify-between items-center">
+                          <div className="space-y-2 w-2/3">
+                            <div className="h-5 bg-gray-200 rounded w-1/2" />
+                            <div className="h-4 bg-gray-200 rounded w-2/3" />
+                          </div>
+                          <div className="h-8 bg-gray-200 rounded w-20" />
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                          {[1, 2, 3].map((j) => (
+                            <div key={j} className="space-y-2">
+                              <div className="h-4 bg-gray-200 rounded w-1/2" />
+                              <div className="h-4 bg-gray-100 rounded w-3/4" />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="h-9 bg-gray-200 rounded w-32" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {!isLoading && displayedCars.map((car: Car, index) => {
             const price = getLatestPrice(car.type);
             const carInfo = carTypes[car.type as keyof typeof carTypes];
             
@@ -713,7 +750,9 @@ function SearchResultsContent() {
                       </div>
                       <div className="flex flex-col items-end ml-8">
                         <span className="text-green-600 text-xs mb-1">Limited Offer</span>
-                        <span className="inline-block bg-white text-black text-lg font-bold px-3 py-2 rounded shadow">₹{price}</span>
+                        <span className="inline-block bg-white text-black text-lg font-bold px-3 py-2 rounded shadow">
+                          {price > 0 ? `₹${price}` : 'Calculating price...'}
+                        </span>
                       </div>
                     </div>
 

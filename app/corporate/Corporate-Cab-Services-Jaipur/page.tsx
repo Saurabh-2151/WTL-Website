@@ -186,7 +186,7 @@ export default function JaipurCorporateCabServicePage() {
         {/* Hero Section with Background */}
         <div className="relative h-[550px] w-full">
           <div className="absolute inset-0">
-            <Image src="/images/Jaipur.jpeg" 
+            <Image src="/images/jaipur temple.jpg" 
             alt="Jaipur Corporate Cab Service" 
             fill className="object-cover" priority />
             <div className="absolute inset-0 bg-black/60"></div>

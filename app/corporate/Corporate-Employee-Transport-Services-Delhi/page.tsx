@@ -175,7 +175,7 @@ export default function DelhiCorporateCabServicePage() {
 
         {/* Shared hero with background image + transparent CabBookingForm */}
         <CorporateCabHero
-          imageSrc="/images/delhi.jpg"
+          imageSrc="/images/delhi garden.jpeg"
           alt="Delhi Corporate Cab Service"
           title="Corporate Cab Services in Delhi"
           subtitle="Professional Corporate Employee Transport Solutions"

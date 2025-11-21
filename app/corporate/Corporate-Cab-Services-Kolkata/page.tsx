@@ -185,7 +185,7 @@ export default function KolkataCorporateCabServicePage() {
         <div className="relative h-[550px] w-full">
           <div className="absolute inset-0">
             <Image
-              src="/images/kolkata.jpeg"
+              src="/images/Kolkata place.jpg"
               alt="Kolkata Corporate Cab Service"
               fill
               className="object-cover"

@@ -185,7 +185,7 @@ export default function GurgaonCorporateCabServicePage() {
         <div className="relative h-[550px] w-full">
           <div className="absolute inset-0">
             <Image
-              src="/images/gurgaon.jpg"
+              src="/images/gurgaon place.jpg"
               alt="Gurgaon Corporate Cab Service"
               fill
               className="object-cover"
