@@ -189,7 +189,7 @@ export default function PuneCorporateCabServicePage() {
         <div className="relative min-h-[550px] w-full flex items-stretch">
           <div className="absolute inset-0">
             <Image
-              src="/images/Pune Fort.jpg"
+              src="/images/Pune 2.png"
               alt="Pune Corporate Cab Service"
               fill
               className="object-cover"

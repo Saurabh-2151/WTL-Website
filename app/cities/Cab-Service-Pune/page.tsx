@@ -112,7 +112,7 @@ export default function PuneCabServicePage() {
           <div className="relative min-h-[550px] w-full flex items-stretch">
             <div className="absolute inset-0">
               <Image
-                src="/images/pune.jpg"
+                src="/images/pune1.png "
                 alt="Pune City"
                 fill
                 className="object-cover"
