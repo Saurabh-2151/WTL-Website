@@ -6,7 +6,7 @@ export default function MarqueeText() {
       </div>
       <style jsx>{`
         @keyframes marquee {
-          0% { transform: translateX(100%); }
+          0% { transform: translateX(100vw); }
           100% { transform: translateX(-100%); }
         }
         .animate-marquee {

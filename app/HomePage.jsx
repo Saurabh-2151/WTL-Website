@@ -87,7 +87,7 @@ export default function HomePage() {
             {currentTab === "cabs" ? (
               <>
                 <Image
-                  src="/images/HomeImage.jpg"
+                  src="/images/HomeImg.png"
                   alt="Cab Background"
                   fill
                   style={{ objectFit: "cover" }}
