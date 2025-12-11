@@ -487,15 +487,15 @@ export default function Footer() {
             </Link>
           </div>
           <div className="text-gray-200 mr-24 text-sm text-center text-">
-            © Copyright WTL 2025. Made with <span className="text-red-500">❤</span> by{" "}
-            <Link     
+            {/* © Copyright WTL 2025. Made with <span className="text-red-500">❤</span> by{" "} */}
+            {/* <Link     
               href="https://webutsav.com" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-blue-400 hover:text-blue-300 transition-colors font-medium mr-4"
             >
               Webutsav
-            </Link>
+            </Link> */}
             {" "}•{" "}
             <Link href="/privacy-policy" className="hover:text-blue-400 transition-colors mr-4">
               Privacy Policy
