@@ -35,7 +35,12 @@ const Contact = () => {
       }
 
       // Create multiple oscillators for richer sound
-      const createTone = (frequency, startTime, duration, volume = 0.4) => {
+      const createTone = (
+        frequency: number,
+        startTime: number,
+        duration: number,
+        volume: number = 0.4
+      ) => {
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
         
@@ -423,7 +428,7 @@ const Contact = () => {
       </div>
 
       {/* Enhanced CSS Animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes progressBar {
           from { width: 100%; }
           to { width: 0%; }
